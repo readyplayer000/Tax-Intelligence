@@ -1,0 +1,31 @@
+# Dependencies
+node_modules/
+/dist
+/build
+.env
+
+# Python
+venv/
+__pycache__/
+*.py[cod]
+*$py.class
+
+# IDEs
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Project specific
+db.json
+/frontend/node_modules
+/backend/node_modules
+/shared/node_modules
+
+# Compiled JS (prevent the previous bug)
+/shared/src/**/*.js
+/shared/src/**/*.js.map
