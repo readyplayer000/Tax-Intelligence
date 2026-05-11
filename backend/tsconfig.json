@@ -13,8 +13,7 @@
     "paths": {
       "shared": ["../shared/src"],
       "shared/*": ["../shared/src/*"]
-    },
-    "ignoreDeprecations": "6.0"
+    }
   },
   "include": ["src/**/*", "../shared/src/**/*"],
   "exclude": ["node_modules"]

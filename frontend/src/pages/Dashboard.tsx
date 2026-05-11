@@ -16,24 +16,16 @@ interface SummaryData {
 }
 
 const fetchSummary = async (): Promise<SummaryData> => {
-  const { data } = await axios.get('http://localhost:4000/api/entries/summary');
+  const { data } = await axios.get('/api/entries/summary');
   return data;
 };
-
-const monthlyData = [
-  { name: 'Apr', income: 150000, expense: 40000 },
-  { name: 'May', income: 150000, expense: 45000 },
-  { name: 'Jun', income: 150000, expense: 35000 },
-  { name: 'Jul', income: 180000, expense: 50000 },
-  { name: 'Aug', income: 150000, expense: 40000 },
-  { name: 'Sep', income: 150000, expense: 60000 },
-];
 
 export default function Dashboard() {
   const queryClient = useQueryClient();
   const navigate = useNavigate();
   const [quickEditId, setQuickEditId] = useState<string | null>(null);
   const [editData, setEditData] = useState<any>(null);
+  const [selectedFY, setSelectedFY] = useState('2025-26');
 
   const { data: summary, isLoading } = useQuery({
     queryKey: ['summary'],
@@ -44,13 +36,14 @@ export default function Dashboard() {
   const { data: entries = [] } = useQuery({
     queryKey: ['entries'],
     queryFn: async () => {
-      const { data } = await axios.get('http://localhost:4000/api/entries?userId=user_123');
+      const { data } = await axios.get('/api/entries?userId=user_123');
       return data;
-    }
+    },
+    refetchInterval: 5000,
   });
 
   const deleteMutation = useMutation({
-    mutationFn: (id: string) => axios.delete(`http://localhost:4000/api/entries/${id}`),
+    mutationFn: (id: string) => axios.delete(`/api/entries/${id}`),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['entries'] });
       queryClient.invalidateQueries({ queryKey: ['summary'] });
@@ -59,7 +52,7 @@ export default function Dashboard() {
 
   const toggleMutation = useMutation({
     mutationFn: (entry: any) => 
-      axios.put(`http://localhost:4000/api/entries/${entry.id}`, {
+      axios.put(`/api/entries/${entry.id}`, {
         ...entry,
         status: entry.status === 'EXCLUDED' ? 'ACTIVE' : 'EXCLUDED'
       }),
@@ -70,7 +63,7 @@ export default function Dashboard() {
   });
 
   const quickSaveMutation = useMutation({
-    mutationFn: (data: any) => axios.put(`http://localhost:4000/api/entries/${data.id}`, data),
+    mutationFn: (data: any) => axios.put(`/api/entries/${data.id}`, data),
     onSuccess: () => {
       setQuickEditId(null);
       queryClient.invalidateQueries({ queryKey: ['entries'] });
@@ -94,7 +87,7 @@ export default function Dashboard() {
     const newStatus = allExcluded ? 'ACTIVE' : 'EXCLUDED';
     try {
       await Promise.all(entries.map((e: any) => 
-        axios.put(`http://localhost:4000/api/entries/${e.id}`, { ...e, status: newStatus })
+        axios.put(`/api/entries/${e.id}`, { ...e, status: newStatus })
       ));
       queryClient.invalidateQueries({ queryKey: ['entries'] });
       queryClient.invalidateQueries({ queryKey: ['summary'] });
@@ -116,6 +109,26 @@ export default function Dashboard() {
     { label: 'Investments (80C)', value: summary?.investment ?? 0, color: 'text-indigo', bg: 'bg-indigo/10', icon: PiggyBank },
     { label: 'Total Deductions', value: summary?.deduction ?? 0, color: 'text-metallicGold', bg: 'bg-metallicGold/10', icon: Receipt },
   ];
+
+  const chartData = (() => {
+    const months = ['Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec', 'Jan', 'Feb', 'Mar'];
+    const data = months.map(name => ({ name, income: 0, expense: 0 }));
+    
+    entries.forEach((entry: any) => {
+      if (entry.financialYear === selectedFY && entry.status !== 'EXCLUDED') {
+        const date = new Date(entry.date);
+        const monthIndex = date.getMonth(); 
+        const mappedIndex = monthIndex >= 3 ? monthIndex - 3 : monthIndex + 9;
+        
+        if (entry.category === 'INCOME') {
+          data[mappedIndex].income += entry.amount;
+        } else if (entry.category === 'EXPENSE') {
+          data[mappedIndex].expense += entry.amount;
+        }
+      }
+    });
+    return data;
+  })();
 
   return (
     <div className="p-8 max-w-[1600px] mx-auto space-y-8">
@@ -164,7 +177,26 @@ export default function Dashboard() {
           className="lg:col-span-2 glass-card p-6 flex flex-col"
         >
           <div className="flex items-center justify-between mb-6">
-            <h2 className="text-xl font-display font-bold">Smart Analytics</h2>
+            <div className="flex items-center gap-3">
+              <h2 className="text-xl font-display font-bold">Smart Analytics</h2>
+              <div className="relative">
+                <select 
+                  value={selectedFY} 
+                  onChange={(e) => setSelectedFY(e.target.value)}
+                  className="appearance-none pl-3 pr-8 py-1 rounded-full bg-emerald-500/10 border border-emerald-500/20 text-[10px] font-bold text-emerald-400 uppercase tracking-widest outline-none cursor-pointer hover:bg-emerald-500/20 transition-colors"
+                >
+                  <option value="2023-24" className="bg-slate-900 text-white">FY 2023-24</option>
+                  <option value="2024-25" className="bg-slate-900 text-white">FY 2024-25</option>
+                  <option value="2025-26" className="bg-slate-900 text-white">FY 2025-26 • Active</option>
+                  <option value="2026-27" className="bg-slate-900 text-white">FY 2026-27</option>
+                </select>
+                <div className="absolute right-2.5 top-1/2 -translate-y-1/2 pointer-events-none text-emerald-400">
+                  <svg width="10" height="6" viewBox="0 0 10 6" fill="none" xmlns="http://www.w3.org/2000/svg">
+                    <path d="M1 1L5 5L9 1" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+                  </svg>
+                </div>
+              </div>
+            </div>
             <div className="flex gap-2">
               <span className="flex items-center gap-1 text-xs text-slate-400"><div className="w-2 h-2 rounded-full bg-cyan"></div> Income</span>
               <span className="flex items-center gap-1 text-xs text-slate-400"><div className="w-2 h-2 rounded-full bg-indigo"></div> Expense</span>
@@ -172,7 +204,7 @@ export default function Dashboard() {
           </div>
           <div className="flex-1 min-h-[300px]">
             <ResponsiveContainer width="100%" height="100%">
-              <AreaChart data={monthlyData}>
+              <AreaChart data={chartData}>
                 <defs>
                   <linearGradient id="colorIncome" x1="0" y1="0" x2="0" y2="1">
                     <stop offset="5%" stopColor="#00D9FF" stopOpacity={0.3}/>
@@ -184,7 +216,7 @@ export default function Dashboard() {
                   </linearGradient>
                 </defs>
                 <XAxis dataKey="name" stroke="#475569" fontSize={12} tickLine={false} axisLine={false} />
-                <YAxis stroke="#475569" fontSize={12} tickLine={false} axisLine={false} tickFormatter={(value) => `₹${value/1000}k`} />
+                <YAxis stroke="#475569" fontSize={12} tickLine={false} axisLine={false} tickFormatter={(value) => `₹${value/1000}k`} domain={['dataMin - 5000', 'auto']} />
                 <Tooltip contentStyle={{ backgroundColor: 'rgba(11,16,32,0.9)', border: '1px solid rgba(255,255,255,0.1)', borderRadius: '8px' }} />
                 <Area type="monotone" dataKey="income" stroke="#00D9FF" strokeWidth={3} fillOpacity={1} fill="url(#colorIncome)" />
                 <Area type="monotone" dataKey="expense" stroke="#4F46E5" strokeWidth={3} fillOpacity={1} fill="url(#colorExpense)" />

@@ -46,13 +46,13 @@ export default function DataEntry() {
   const { data: entries = [] } = useQuery({
     queryKey: ['entries'],
     queryFn: async () => {
-      const { data } = await axios.get('http://localhost:4000/api/entries?userId=user_123');
+      const { data } = await axios.get('/api/entries?userId=user_123');
       return data;
     }
   });
 
   const deleteMutation = useMutation({
-    mutationFn: (id: string) => axios.delete(`http://localhost:4000/api/entries/${id}`),
+    mutationFn: (id: string) => axios.delete(`/api/entries/${id}`),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['entries'] });
       queryClient.invalidateQueries({ queryKey: ['summary'] });
@@ -61,7 +61,7 @@ export default function DataEntry() {
 
   const toggleMutation = useMutation({
     mutationFn: (entry: any) => 
-      axios.put(`http://localhost:4000/api/entries/${entry.id}`, {
+      axios.put(`/api/entries/${entry.id}`, {
         ...entry,
         status: entry.status === 'EXCLUDED' ? 'ACTIVE' : 'EXCLUDED'
       }),
@@ -72,7 +72,7 @@ export default function DataEntry() {
   });
 
   const quickSaveMutation = useMutation({
-    mutationFn: (data: any) => axios.put(`http://localhost:4000/api/entries/${data.id}`, data),
+    mutationFn: (data: any) => axios.put(`/api/entries/${data.id}`, data),
     onSuccess: () => {
       setQuickEditId(null);
       queryClient.invalidateQueries({ queryKey: ['entries'] });
@@ -109,9 +109,9 @@ export default function DataEntry() {
   const onSubmit = async (data: TaxEntryInput) => {
     try {
       if (editingId) {
-        await axios.put(`http://localhost:4000/api/entries/${editingId}`, data);
+        await axios.put(`/api/entries/${editingId}`, data);
       } else {
-        await axios.post('http://localhost:4000/api/entries', data);
+        await axios.post('/api/entries', data);
       }
       
       setSuccess(true);
@@ -164,7 +164,7 @@ export default function DataEntry() {
 
     try {
       for (const sample of samples) {
-        await axios.post('http://localhost:4000/api/entries', sample);
+        await axios.post('/api/entries', sample);
       }
       queryClient.invalidateQueries({ queryKey: ['entries'] });
       queryClient.invalidateQueries({ queryKey: ['summary'] });

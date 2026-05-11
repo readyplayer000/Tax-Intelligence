@@ -22,7 +22,30 @@ def fetch_tax_data(user_id: str, financial_year: str):
         backend_url = os.getenv("BACKEND_INTERNAL_URL", "http://localhost:4000")
         response = requests.get(f"{backend_url}/api/entries?userId={user_id}&fy={financial_year}")
         if response.status_code == 200:
-            return response.json()
+            entries = response.json()
+            summary = {
+                "total_income": 0,
+                "total_expense": 0,
+                "total_investment": 0,
+                "income_breakdown": {},
+                "expense_breakdown": {},
+                "investment_breakdown": {}
+            }
+            for entry in entries:
+                cat = entry.get("category")
+                sub = entry.get("subCategory", "Other")
+                amt = float(entry.get("amount", 0))
+                
+                if cat == "INCOME":
+                    summary["total_income"] += amt
+                    summary["income_breakdown"][sub] = summary["income_breakdown"].get(sub, 0) + amt
+                elif cat == "EXPENSE":
+                    summary["total_expense"] += amt
+                    summary["expense_breakdown"][sub] = summary["expense_breakdown"].get(sub, 0) + amt
+                elif cat == "INVESTMENT":
+                    summary["total_investment"] += amt
+                    summary["investment_breakdown"][sub] = summary["investment_breakdown"].get(sub, 0) + amt
+            return summary
         return []
     except Exception as e:
         print(f"Error fetching tax data: {e}")

@@ -1,6 +1,6 @@
 import { useState, useRef, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Send, Bot, User, Sparkles, AlertCircle, X, Mic } from 'lucide-react';
+import { Send, Bot, User, Sparkles, AlertCircle, X, Mic, HelpCircle } from 'lucide-react';
 import { clsx } from 'clsx';
 import axios from 'axios';
 import ReactMarkdown from 'react-markdown';
@@ -11,11 +11,52 @@ interface Message {
   content: string;
 }
 
-const QUICK_ACTIONS = [
-  { label: 'Analyze My Taxes', query: 'Based on my data, give me a full tax analysis and regime comparison.' },
-  { label: 'Save ₹50,000 More', query: 'How can I save an additional ₹50,000 in taxes this year?' },
-  { label: '80C Breakdown', query: 'Show me my current 80C investments and how much headroom I have.' },
-  { label: 'New vs Old Regime', query: 'Compare my tax liability under the New vs Old regime for FY 24-25.' },
+const FAQ_ITEMS = [
+  { 
+    label: 'Analyze My Taxes', 
+    query: 'Based on my data, give me a full tax analysis and regime comparison.',
+    category: 'Analysis'
+  },
+  { 
+    label: 'New vs Old Regime', 
+    query: 'Explain the key differences between the New and Old tax regimes for FY 2024-25. Which one is generally better?',
+    category: 'Regime'
+  },
+  { 
+    label: '80C Limits', 
+    query: 'What are the current limits for Section 80C and what investments qualify?',
+    category: 'Deductions'
+  },
+  { 
+    label: 'HRA Calculation', 
+    query: 'How do I calculate my HRA exemption? What are the conditions?',
+    category: 'Deductions'
+  },
+  { 
+    label: 'Standard Deduction', 
+    query: 'What is the standard deduction for FY 24-25 in both regimes?',
+    category: 'General'
+  },
+  { 
+    label: 'Section 80D', 
+    query: 'What are the tax benefits for health insurance under Section 80D?',
+    category: 'Deductions'
+  },
+  {
+    label: 'Crypto & NFT Tax 2026',
+    query: 'What are the new 2026 rules for Virtual Digital Assets like Crypto and NFTs? Can I set off losses?',
+    category: 'Advanced Rules'
+  },
+  {
+    label: 'GST Hard Compliance',
+    query: 'Explain the new 2026 GST Hard Compliance Rules including the 3-Year Bar and IRN Window.',
+    category: 'Business'
+  },
+  {
+    label: 'Capital Gains 2026',
+    query: 'How are Capital Gains taxed under the new 2026 rules? What happened to indexation?',
+    category: 'Investments'
+  },
 ];
 
 export default function ChatBot({ onClose }: { onClose?: () => void }) {
@@ -24,6 +65,7 @@ export default function ChatBot({ onClose }: { onClose?: () => void }) {
   ]);
   const [input, setInput] = useState('');
   const [isLoading, setIsLoading] = useState(false);
+  const [showFaq, setShowFaq] = useState(false);
   const scrollRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -43,7 +85,7 @@ export default function ChatBot({ onClose }: { onClose?: () => void }) {
     setIsLoading(true);
 
     try {
-      const response = await axios.post('http://127.0.0.1:8000/chat', {
+      const response = await axios.post('/agent/chat', {
         user_id: 'user_123',
         financial_year: '2024-25',
         message: userMessage
@@ -84,11 +126,22 @@ export default function ChatBot({ onClose }: { onClose?: () => void }) {
             </p>
           </div>
         </div>
-        {onClose && (
-          <button onClick={onClose} className="p-2 text-slate-400 hover:text-white hover:bg-white/10 hover:rotate-90 rounded-full transition-all duration-300">
-            <X size={20} />
+        <div className="flex items-center gap-2">
+          <button 
+            onClick={() => setShowFaq(!showFaq)}
+            className={clsx(
+              "p-2 rounded-full transition-all duration-300",
+              showFaq ? "bg-cyan/20 text-cyan" : "text-slate-400 hover:text-white hover:bg-white/10"
+            )}
+          >
+            <HelpCircle size={20} />
           </button>
-        )}
+          {onClose && (
+            <button onClick={onClose} className="p-2 text-slate-400 hover:text-white hover:bg-white/10 hover:rotate-90 rounded-full transition-all duration-300">
+              <X size={20} />
+            </button>
+          )}
+        </div>
       </header>
 
       {/* Chat Area */}
@@ -152,9 +205,51 @@ export default function ChatBot({ onClose }: { onClose?: () => void }) {
           </AnimatePresence>
         </div>
 
-        {/* Quick Actions */}
+        {/* FAQ Overlay */}
+        <AnimatePresence>
+          {showFaq && (
+            <motion.div
+              initial={{ opacity: 0, x: '100%' }}
+              animate={{ opacity: 1, x: 0 }}
+              exit={{ opacity: 0, x: '100%' }}
+              className="absolute inset-y-0 right-0 w-full bg-black/90 backdrop-blur-2xl z-50 p-6 border-l border-white/10 shadow-2xl"
+            >
+              <div className="flex justify-between items-center mb-6">
+                <h3 className="text-xl font-display font-bold text-white flex items-center gap-2">
+                  <HelpCircle className="text-cyan" />
+                  Frequently Asked Questions
+                </h3>
+                <button onClick={() => setShowFaq(false)} className="p-2 text-slate-400 hover:text-white">
+                  <X size={20} />
+                </button>
+              </div>
+              <div className="space-y-3 overflow-y-auto max-h-[calc(100%-4rem)] pr-2 custom-scrollbar">
+                {FAQ_ITEMS.map((faq, idx) => (
+                  <button
+                    key={idx}
+                    onClick={() => {
+                      handleSend(faq.query);
+                      setShowFaq(false);
+                    }}
+                    className="w-full text-left p-4 rounded-xl bg-white/5 border border-white/10 hover:border-cyan/50 hover:bg-cyan/5 transition-all group"
+                  >
+                    <div className="flex justify-between items-start gap-4">
+                      <div>
+                        <span className="text-[10px] text-cyan font-mono uppercase tracking-widest block mb-1">{faq.category}</span>
+                        <p className="text-sm font-medium text-white group-hover:text-cyan transition-colors">{faq.label}</p>
+                      </div>
+                      <Send size={14} className="text-slate-600 group-hover:text-cyan mt-1" />
+                    </div>
+                  </button>
+                ))}
+              </div>
+            </motion.div>
+          )}
+        </AnimatePresence>
+
+        {/* Quick Actions (Bottom Scroll) */}
         <div className="px-6 pb-4 flex flex-wrap gap-2 overflow-x-auto no-scrollbar">
-          {QUICK_ACTIONS.map((action, idx) => (
+          {FAQ_ITEMS.slice(0, 4).map((action, idx) => (
             <button
               key={idx}
               onClick={() => handleSend(action.query)}
