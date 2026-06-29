@@ -1,8 +1,8 @@
-﻿<div align="center">
+<div align="center">
 
-# ðŸ§  Reinventing Tax Intelligence
+# Reinventing Tax Intelligence
 
-### *AI-Powered Tax Management Platform for the Modern Era*
+### AI-Powered Tax Management Platform for the Modern Era
 
 [![React](https://img.shields.io/badge/React-18.2-61DAFB?style=for-the-badge&logo=react&logoColor=black)](https://react.dev)
 [![TypeScript](https://img.shields.io/badge/TypeScript-5.0-3178C6?style=for-the-badge&logo=typescript&logoColor=white)](https://www.typescriptlang.org)
@@ -11,29 +11,29 @@
 [![PostgreSQL](https://img.shields.io/badge/PostgreSQL-15-4169E1?style=for-the-badge&logo=postgresql&logoColor=white)](https://www.postgresql.org)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow?style=for-the-badge)](LICENSE)
 
-**Reinventing Tax Intelligence** is a full-stack, AI-powered taxation assistant that simplifies financial tracking, tax optimization, and compliance using cutting-edge AI â€” built for Indian taxpayers navigating the 2025-26 tax year and beyond.
+**Reinventing Tax Intelligence** is a full-stack, AI-powered taxation assistant that simplifies financial tracking, tax optimization, and compliance using cutting-edge AI -- built for Indian taxpayers navigating the 2025-26 tax year and beyond.
 
-[Live Demo](#) Â· [Report Bug](https://github.com/readyplayer000/Reinventing-Tax-Intelligence/issues) Â· [Request Feature](https://github.com/readyplayer000/Reinventing-Tax-Intelligence/issues)
+[Live Demo](#) - [Report Bug](https://github.com/readyplayer000/Reinventing-Tax-Intelligence/issues) - [Request Feature](https://github.com/readyplayer000/Reinventing-Tax-Intelligence/issues)
 
 </div>
 
 ---
 
-## âœ¨ Features
+## Features
 
-- ðŸ¤– **Trio AI Chatbot** â€” Holographic tax strategist powered by Google Gemini, trained on the latest 2026 Indian Tax regulations
-- ðŸ“Š **Smart Analytics Dashboard** â€” Real-time income/expense charts with financial year selection
-- ðŸ“ **Transaction Ledger** â€” Add, edit, delete, and exclude financial entries across all categories
-- ðŸ§® **GST Compliance Hub** â€” Quick GST calculator, GSTIN verification, and upcoming return alerts
-- ðŸ“ˆ **Financial Intelligence** â€” AI-driven projections, tax efficiency score, and wealth health meter
-- ðŸ“„ **Tax Reports** â€” Auto-generated reports with regime comparison (New vs Old)
-- ðŸ”’ **Secure Auth** â€” JWT-based authentication system
-- âš¡ **Regime Advisor** â€” Real-time comparison of Old vs New tax regime savings
-- ðŸ‡®ðŸ‡³ **2026-Ready** â€” Built with the new Income Tax Act rules, Crypto/VDA taxation, and GST Hard Compliance
+- **Trio AI Chatbot** -- Holographic tax strategist powered by Google Gemini, trained on the latest 2026 Indian Tax regulations
+- **Smart Analytics Dashboard** -- Real-time income/expense charts with financial year selection
+- **Transaction Ledger** -- Add, edit, delete, and exclude financial entries across all categories
+- **GST Compliance Hub** -- Quick GST calculator, GSTIN verification, and upcoming return alerts
+- **Financial Intelligence** -- AI-driven projections, tax efficiency score, and wealth health meter
+- **Tax Reports** -- Auto-generated reports with regime comparison (New vs Old)
+- **Secure Auth** -- JWT-based authentication system
+- **Regime Advisor** -- Real-time comparison of Old vs New tax regime savings
+- **2026-Ready** -- Built with the new Income Tax Act rules, Crypto/VDA taxation, and GST Hard Compliance
 
 ---
 
-## ðŸ› ï¸ Tech Stack
+## Tech Stack
 
 ### Frontend
 | Technology | Purpose |
@@ -68,53 +68,53 @@
 
 ---
 
-## ðŸ“ Project Structure
+## Project Structure
 
 ```
 Reinventing-Tax-Intelligence/
-â”œâ”€â”€ ðŸ“ frontend/              # React + Vite Application
-â”‚   â”œâ”€â”€ src/
-â”‚   â”‚   â”œâ”€â”€ pages/
-â”‚   â”‚   â”‚   â”œâ”€â”€ Dashboard.tsx     # Main dashboard with analytics
-â”‚   â”‚   â”‚   â”œâ”€â”€ DataEntry.tsx     # Transaction management
-â”‚   â”‚   â”‚   â”œâ”€â”€ Analytics.tsx     # Financial intelligence
-â”‚   â”‚   â”‚   â”œâ”€â”€ ChatBot.tsx       # Trio AI chatbot
-â”‚   â”‚   â”‚   â”œâ”€â”€ GST.tsx           # GST compliance hub
-â”‚   â”‚   â”‚   â”œâ”€â”€ Reports.tsx       # Tax reports
-â”‚   â”‚   â”‚   â””â”€â”€ Login.tsx         # Authentication
-â”‚   â”‚   â”œâ”€â”€ App.tsx
-â”‚   â”‚   â””â”€â”€ main.tsx
-â”‚   â””â”€â”€ vite.config.ts
-â”‚
-â”œâ”€â”€ ðŸ“ backend/               # Node.js + Express API
-â”‚   â””â”€â”€ src/
-â”‚       â”œâ”€â”€ routes/
-â”‚       â”‚   â”œâ”€â”€ entries.ts        # Financial entries CRUD
-â”‚       â”‚   â”œâ”€â”€ auth.ts           # Authentication
-â”‚       â”‚   â””â”€â”€ chat.ts           # Chat proxy
-â”‚       â””â”€â”€ index.ts
-â”‚
-â”œâ”€â”€ ðŸ“ ai-agent/              # Python FastAPI AI Microservice
-â”‚   â””â”€â”€ app/
-â”‚       â”œâ”€â”€ agent.py              # LangChain AI agent
-â”‚       â”œâ”€â”€ main.py               # FastAPI endpoints
-â”‚       â””â”€â”€ prompts/
-â”‚           â””â”€â”€ system_prompt.txt # Trio AI personality & rules
-â”‚
-â”œâ”€â”€ ðŸ“ shared/                # Shared TypeScript types & schemas
-â”‚   â””â”€â”€ src/
-â”‚       â”œâ”€â”€ validators/
-â”‚       â”‚   â””â”€â”€ entrySchema.ts
-â”‚       â””â”€â”€ index.ts
-â”‚
-â”œâ”€â”€ docker-compose.yml        # Full stack Docker setup
-â”œâ”€â”€ package.json              # Monorepo workspace config
-â””â”€â”€ .env.example              # Environment variables template
+├── frontend/               # React + Vite Application
+│   ├── src/
+│   │   ├── pages/
+│   │   │   ├── Dashboard.tsx     # Main dashboard with analytics
+│   │   │   ├── DataEntry.tsx     # Transaction management
+│   │   │   ├── Analytics.tsx     # Financial intelligence
+│   │   │   ├── ChatBot.tsx       # Trio AI chatbot
+│   │   │   ├── GST.tsx           # GST compliance hub
+│   │   │   ├── Reports.tsx       # Tax reports
+│   │   │   └── Login.tsx         # Authentication
+│   │   ├── App.tsx
+│   │   └── main.tsx
+│   └── vite.config.ts
+│
+├── backend/                # Node.js + Express API
+│   └── src/
+│       ├── routes/
+│       │   ├── entries.ts        # Financial entries CRUD
+│       │   ├── auth.ts           # Authentication
+│       │   └── chat.ts           # Chat proxy
+│       └── index.ts
+│
+├── ai-agent/               # Python FastAPI AI Microservice
+│   └── app/
+│       ├── agent.py              # LangChain AI agent
+│       ├── main.py               # FastAPI endpoints
+│       └── prompts/
+│           └── system_prompt.txt # Trio AI personality & rules
+│
+├── shared/                 # Shared TypeScript types & schemas
+│   └── src/
+│       ├── validators/
+│       │   └── entrySchema.ts
+│       └── index.ts
+│
+├── docker-compose.yml      # Full stack Docker setup
+├── package.json            # Monorepo workspace config
+└── .env.example            # Environment variables template
 ```
 
 ---
 
-## ðŸš€ Getting Started
+## Getting Started
 
 ### Prerequisites
 - Node.js 18+
@@ -151,22 +151,21 @@ npm install
 # Install Python dependencies for AI agent
 cd ai-agent
 python -m venv venv
-venv\Scripts\activate   # Windows
-# source venv/bin/activate  # Mac/Linux
+venv\Scripts\activate        # Windows
+# source venv/bin/activate   # Mac/Linux
 pip install -r requirements.txt
 cd ..
 ```
 
 ### 4. Start the Application
 ```bash
-# Start all services concurrently
 npm run dev
 ```
 
 This starts:
-- ðŸŽ¨ **Frontend** â†’ http://localhost:3000
-- âš™ï¸ **Backend API** â†’ http://localhost:4000
-- ðŸ¤– **AI Agent** â†’ http://localhost:8000
+- Frontend  --> http://localhost:3000
+- Backend API --> http://localhost:4000
+- AI Agent  --> http://localhost:8000
 
 ### 5. (Optional) Docker Setup
 ```bash
@@ -175,32 +174,32 @@ docker-compose up --build
 
 ---
 
-## ðŸŒ Deployment
+## Deployment
 
 | Service | Platform |
 |---|---|
-| ðŸŽ¨ Frontend | [Vercel](https://vercel.com) â€” Set root dir to `frontend` |
-| âš™ï¸ Backend | [Railway](https://railway.app) â€” Set root dir to `backend` |
-| ðŸ—„ï¸ Database | [Railway](https://railway.app) â€” Deploy PostgreSQL plugin |
-| ðŸ¤– AI Agent | [Railway](https://railway.app) â€” Set root dir to `ai-agent` |
+| Frontend | [Vercel](https://vercel.com) -- Set root dir to `frontend` |
+| Backend | [Railway](https://railway.app) -- Set root dir to `backend` |
+| Database | [Railway](https://railway.app) -- Deploy PostgreSQL plugin |
+| AI Agent | [Railway](https://railway.app) -- Set root dir to `ai-agent` |
 
 ---
 
-## ðŸ§  AI Capabilities
+## AI Capabilities
 
-**Trio** â€” the AI tax strategist â€” is trained on:
+**Trio** -- the AI tax strategist -- is trained on:
 
-- ðŸ“œ **New Income Tax Act 2026** â€” Tax Year concept, revised slabs
-- ðŸ’° **Capital Gains Rules 2026** â€” Updated STCG/LTCG with indexation changes
-- ðŸª™ **Crypto / VDA Taxation** â€” 30% flat rate, loss set-off restrictions
-- ðŸ¥ **Section 80C, 80D, 80E** â€” Full deduction eligibility logic
-- ðŸ“‹ **GST Hard Compliance** â€” 3-Year bar, IRN window rules
-- ðŸ”„ **Regime Comparison** â€” Real-time Old vs New regime calculator
-- ðŸ  **HRA Exemption** â€” Full HRA calculation methodology
+- **New Income Tax Act 2026** -- Tax Year concept, revised slabs
+- **Capital Gains Rules 2026** -- Updated STCG/LTCG with indexation changes
+- **Crypto / VDA Taxation** -- 30% flat rate, loss set-off restrictions
+- **Section 80C, 80D, 80E** -- Full deduction eligibility logic
+- **GST Hard Compliance** -- 3-Year bar, IRN window rules
+- **Regime Comparison** -- Real-time Old vs New regime calculator
+- **HRA Exemption** -- Full HRA calculation methodology
 
 ---
 
-## ðŸ“¸ Screenshots
+## Screenshots
 
 > Add your project screenshots in a `screenshots/` folder and update paths below.
 
@@ -210,7 +209,7 @@ docker-compose up --build
 
 ---
 
-## ðŸ¤ Contributing
+## Contributing
 
 Contributions are welcome! Please feel free to submit a Pull Request.
 
@@ -222,13 +221,13 @@ Contributions are welcome! Please feel free to submit a Pull Request.
 
 ---
 
-## ðŸ“„ License
+## License
 
 Distributed under the MIT License. See `LICENSE` for more information.
 
 ---
 
-## ðŸ‘¨â€ðŸ’» Author
+## Author
 
 **readyplayer000**
 
@@ -238,9 +237,8 @@ Distributed under the MIT License. See `LICENSE` for more information.
 
 <div align="center">
 
-**â­ Star this repo if you found it useful!**
+**Star this repo if you found it useful!**
 
-*Built with â¤ï¸ for smarter tax management*
+*Built with passion for smarter tax management*
 
 </div>
-
