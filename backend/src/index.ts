@@ -10,12 +10,17 @@ import chatRouter from './routes/chat';
 
 import path from 'path';
 
+// Load .env locally; on Render, env vars are set via dashboard
 dotenv.config({ path: path.resolve(__dirname, '../../.env') });
+dotenv.config(); // fallback for production
 
 const app = express();
 const PORT = process.env.PORT || 4000;
 
-app.use(cors());
+app.use(cors({
+  origin: process.env.FRONTEND_URL || '*',
+  credentials: true
+}));
 app.use(express.json());
 app.use(morgan('dev'));
 
