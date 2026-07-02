@@ -1,5 +1,5 @@
 import { Router } from 'express';
-import { entrySchema } from 'shared';
+import { entrySchema } from '../shared/validators/entrySchema';
 import fs from 'fs';
 import path from 'path';
 
