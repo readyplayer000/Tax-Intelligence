@@ -5,7 +5,7 @@ import { clsx } from 'clsx';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import api from '../lib/api';
 import { DEMO_ENTRIES, DEMO_SUMMARY, getDemoEntries, getDemoSummary, saveDemoEntries, updateDemoEntry, deleteDemoEntry, addDemoEntry } from '../lib/demoData';
-import { Wallet, PiggyBank, Receipt, Sparkles, ScanLine, Activity, CheckCircle, AlertCircle, Pencil, Trash2, Camera, Upload, X, RefreshCw, Check } from 'lucide-react';
+import { Wallet, PiggyBank, Receipt, Sparkles, ScanLine, Activity, CheckCircle, AlertCircle, Pencil, Trash2, Camera, Upload, X, RefreshCw, Check, Trophy, Link2, ShieldAlert, CheckCircle2, AlertTriangle } from 'lucide-react';
 import { AreaChart, Area, XAxis, YAxis, Tooltip, ResponsiveContainer } from 'recharts';
 import { useNavigate } from 'react-router-dom';
 
@@ -37,6 +37,169 @@ export default function Dashboard() {
 
   const storedUser = JSON.parse(localStorage.getItem('taxai-user') || '{}');
   const isDemo = storedUser?.id === 'demo';
+
+  // Compliance alerts state
+  const [complianceAlerts, setComplianceAlerts] = useState(() => {
+    const alerts = [
+      { id: 'gstr1', text: '⚠️ GSTR-1 Sales Filing deadline for this quarter is July 11, 2026.', urgent: true },
+      { id: 'advtax', text: '📅 Advance Tax 2nd installment is due by September 15, 2026.', urgent: false },
+      { id: 'pan_aadhaar', text: '🔒 Compliance: PAN-Aadhar linking validation deadline is December 31, 2026.', urgent: false },
+    ];
+    // In demo mode, always show all alerts (don't persist dismissals)
+    if (JSON.parse(localStorage.getItem('taxai-user') || '{}')?.id === 'demo') {
+      return alerts;
+    }
+    const saved = localStorage.getItem('taxai-dismissed-compliance');
+    const dismissed = saved ? JSON.parse(saved) : [];
+    return alerts.filter(a => !dismissed.includes(a.id));
+  });
+
+  const dismissCompliance = (id: string) => {
+    // In demo mode, only dismiss from local state (will reappear on refresh)
+    if (!isDemo) {
+      const saved = localStorage.getItem('taxai-dismissed-compliance');
+      const dismissed = saved ? JSON.parse(saved) : [];
+      dismissed.push(id);
+      localStorage.setItem('taxai-dismissed-compliance', JSON.stringify(dismissed));
+    }
+    setComplianceAlerts(prev => prev.filter(a => a.id !== id));
+  };
+
+  const [hasLinked, setHasLinked] = useState(() => localStorage.getItem('taxai-linked') === 'true');
+
+  const linkMockAccount = () => {
+    localStorage.setItem('taxai-linked', 'true');
+    setHasLinked(true);
+    queryClient.invalidateQueries({ queryKey: ['entries'] });
+    queryClient.invalidateQueries({ queryKey: ['summary'] });
+  };
+
+  const unlinkMockAccount = () => {
+    localStorage.removeItem('taxai-linked');
+    setHasLinked(false);
+    queryClient.invalidateQueries({ queryKey: ['entries'] });
+    queryClient.invalidateQueries({ queryKey: ['summary'] });
+  };
+
+  // Dynamic Anomaly Detection logic
+  const detectAnomalies = () => {
+    const alerts: any[] = [];
+    const seen = new Set();
+    // In demo mode, don't read resolved anomalies from localStorage
+    const resolvedIds = isDemo ? [] : JSON.parse(localStorage.getItem('taxai-resolved-anomalies') || '[]');
+
+    entries.forEach((e: any) => {
+      if (resolvedIds.includes(e.id)) return;
+
+      // 1. Duplicate transaction detection
+      const key = `${e.amount}-${e.date}-${e.category}`;
+      if (seen.has(key)) {
+        alerts.push({
+          id: e.id,
+          type: 'DUPLICATE',
+          title: 'Possible Duplicate Transaction',
+          desc: `Flagged duplicate amount of ₹${e.amount.toLocaleString('en-IN')} on ${e.date}.`,
+          actionLabel: 'Delete Entry',
+          action: () => deleteMutation.mutate(e.id)
+        });
+      }
+      seen.add(key);
+
+      // 2. Category mismatch detection
+      const descLower = (e.description || '').toLowerCase();
+      const isExpenseKeyword = descLower.includes('office') || descLower.includes('hosting') || descLower.includes('software') || descLower.includes('stationery') || descLower.includes('rent') || descLower.includes('supplies') || descLower.includes('travel');
+      if (isExpenseKeyword && e.category === 'INCOME') {
+        alerts.push({
+          id: e.id,
+          type: 'MISMATCH',
+          title: 'Category Contradiction',
+          desc: `"${e.description}" sounds like an expense but is categorized as Income.`,
+          actionLabel: 'Change to Expense',
+          action: () => {
+            const updated = { ...e, category: 'EXPENSE' };
+            if (isDemo) {
+              updateDemoEntry(e.id, updated);
+              queryClient.invalidateQueries({ queryKey: ['entries'] });
+              queryClient.invalidateQueries({ queryKey: ['summary'] });
+            } else {
+              quickSaveMutation.mutate(updated);
+            }
+          }
+        });
+      }
+    });
+
+    // 3. Section 80C Limit Breach
+    const c80Invested = summary?.investment ?? 0;
+    if (c80Invested > 150000) {
+      alerts.push({
+        id: '80c_breach',
+        type: 'BREACH',
+        title: 'Section 80C Limit Exceeded',
+        desc: `Invested ₹${c80Invested.toLocaleString('en-IN')} (Limit is ₹1,50,000). Excess won't yield tax benefits.`,
+        actionLabel: 'Review Deductions',
+        action: () => navigate('/reports')
+      });
+    }
+
+    return alerts;
+  };
+
+  const dismissAnomaly = (id: string) => {
+    // In demo mode, only dismiss from local state (will reappear on refresh)
+    if (!isDemo) {
+      const resolvedIds = JSON.parse(localStorage.getItem('taxai-resolved-anomalies') || '[]');
+      resolvedIds.push(id);
+      localStorage.setItem('taxai-resolved-anomalies', JSON.stringify(resolvedIds));
+    }
+    queryClient.invalidateQueries({ queryKey: ['entries'] });
+  };
+
+  // Dynamic Gamification & Tax Health Score calculations
+  const calculateTaxHealth = () => {
+    let score = 400; // Baseline
+    const challenges: any[] = [];
+
+    // 1. Linked accounts challenge
+    if (hasLinked) {
+      score += 150;
+    } else {
+      challenges.push({ id: 'link_bank', title: 'Link Bank Account', reward: '+150 pts', desc: 'Securely sync your business statements' });
+    }
+
+    // 2. Section 80C compliance challenge
+    const c80Invested = summary?.investment ?? 0;
+    const c80Target = 150000;
+    const c80Ratio = Math.min(1, c80Invested / c80Target);
+    score += Math.round(c80Ratio * 200);
+    
+    if (c80Invested < c80Target) {
+      challenges.push({ 
+        id: 'invest_80c', 
+        title: 'Invest under Section 80C', 
+        reward: `+${Math.round((1 - c80Ratio) * 200)} pts`, 
+        desc: `Invest ₹${(c80Target - c80Invested).toLocaleString('en-IN')} more to maximize tax savings` 
+      });
+    }
+
+    // 3. Resolve anomalies challenge
+    const anomaliesList = detectAnomalies();
+    if (anomaliesList.length === 0) {
+      score += 150;
+    } else {
+      challenges.push({ id: 'fix_anomalies', title: 'Resolve Ledger Anomalies', reward: '+150 pts', desc: `Resolve the ${anomaliesList.length} warning(s) flagged by Trio` });
+    }
+
+    // 4. GST filing check
+    const hasGst = entries.some((e: any) => e.category === 'EXPENSE' && e.subCategory?.toLowerCase().includes('gst'));
+    if (hasGst) {
+      score += 100;
+    } else {
+      challenges.push({ id: 'gst_verify', title: 'Reconcile GST Invoices', reward: '+100 pts', desc: 'Input GSTIN to reclaim input tax credit' });
+    }
+
+    return { score, challenges };
+  };
 
   // Camera & Document Scanner States
   const [isScannerOpen, setIsScannerOpen] = useState(false);
@@ -262,6 +425,9 @@ export default function Dashboard() {
     }).format(value);
   };
 
+  const { score: healthScore, challenges: healthChallenges } = calculateTaxHealth();
+  const liveAnomalies = detectAnomalies();
+
   const cards = [
     { label: 'Total Income', value: summary?.income ?? 0, color: 'text-electricTeal', bg: 'bg-electricTeal/10', icon: Wallet },
     { label: 'Investments (80C)', value: summary?.investment ?? 0, color: 'text-indigo', bg: 'bg-indigo/10', icon: PiggyBank },
@@ -319,6 +485,38 @@ export default function Dashboard() {
         </div>
       )}
 
+      {/* Proactive Compliance Alerts Ticker */}
+      <AnimatePresence>
+        {complianceAlerts.length > 0 && (
+          <motion.div 
+            initial={{ opacity: 0, height: 0 }}
+            animate={{ opacity: 1, height: 'auto' }}
+            exit={{ opacity: 0, height: 0 }}
+            className="space-y-2 mb-4"
+          >
+            {complianceAlerts.map(alert => (
+              <div 
+                key={alert.id}
+                className={clsx(
+                  "flex items-center justify-between px-5 py-3 rounded-2xl border text-xs font-medium backdrop-blur-md transition-all shadow-sm",
+                  alert.urgent 
+                    ? "bg-rose-500/10 border-rose-500/25 text-rose-300" 
+                    : "bg-amber-500/10 border-amber-500/25 text-amber-300"
+                )}
+              >
+                <span>{alert.text}</span>
+                <button 
+                  onClick={() => dismissCompliance(alert.id)}
+                  className="p-1 rounded-md hover:bg-white/10 text-slate-400 hover:text-white transition-colors"
+                >
+                  <X size={14} />
+                </button>
+              </div>
+            ))}
+          </motion.div>
+        )}
+      </AnimatePresence>
+
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
         {cards.map((card, i) => (
           <motion.div
@@ -347,11 +545,12 @@ export default function Dashboard() {
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        <motion.div 
-          initial={{ opacity: 0, scale: 0.95 }}
-          animate={{ opacity: 1, scale: 1 }}
-          className="lg:col-span-2 glass-card p-6 flex flex-col"
-        >
+        <div className="lg:col-span-2 space-y-6">
+          <motion.div 
+            initial={{ opacity: 0, scale: 0.95 }}
+            animate={{ opacity: 1, scale: 1 }}
+            className="glass-card p-6 flex flex-col"
+          >
           <div className="flex flex-col sm:flex-row gap-4 justify-between items-start sm:items-center mb-6">
             <div className="flex items-center gap-3">
               <h2 className="text-xl font-display font-bold">Smart Analytics</h2>
@@ -378,7 +577,7 @@ export default function Dashboard() {
               <span className="flex items-center gap-1 text-xs text-slate-400"><div className="w-2 h-2 rounded-full bg-indigo"></div> Expense</span>
             </div>
           </div>
-          <div className="flex-1 min-h-[300px]">
+          <div className="w-full h-[300px] mt-4">
             <ResponsiveContainer width="100%" height="100%">
               <AreaChart data={chartData}>
                 <defs>
@@ -401,7 +600,63 @@ export default function Dashboard() {
           </div>
         </motion.div>
 
-        <div className="space-y-6">
+        {/* AI Intelligent Anomaly Detection Hub */}
+        <motion.div 
+          initial={{ opacity: 0, x: -20 }}
+          animate={{ opacity: 1, x: 0 }}
+          transition={{ delay: 0.15 }}
+          className="glass-card p-6 border-white/10"
+        >
+          <h2 className="text-lg font-display font-bold mb-4 flex items-center gap-2 text-white">
+            <ShieldAlert size={18} className="text-rose-400" />
+            Intelligent Anomaly Detection
+          </h2>
+
+          <div className="space-y-3">
+            {liveAnomalies.length > 0 ? (
+              liveAnomalies.map((alert, idx) => (
+                <div key={idx} className="p-3.5 rounded-xl bg-rose-500/5 border border-rose-500/20 space-y-2 hover:bg-rose-500/10 transition-colors">
+                  <div className="flex justify-between items-start gap-2">
+                    <div className="flex gap-2">
+                      <AlertTriangle size={15} className="text-rose-400 shrink-0 mt-0.5" />
+                      <div>
+                        <p className="text-xs font-semibold text-white">{alert.title}</p>
+                        <p className="text-[10px] text-slate-400 leading-normal mt-0.5">{alert.desc}</p>
+                      </div>
+                    </div>
+                    <button 
+                      onClick={() => dismissAnomaly(alert.id)}
+                      className="p-0.5 hover:bg-white/5 rounded text-slate-400 hover:text-slate-200 transition-colors"
+                      title="Ignore anomaly"
+                    >
+                      <X size={12} />
+                    </button>
+                  </div>
+                  
+                  <div className="flex justify-end gap-2 pt-1 border-t border-rose-500/10">
+                    <button 
+                      onClick={alert.action}
+                      className="px-2.5 py-1 bg-rose-500 hover:bg-rose-600 text-white font-bold text-[9px] uppercase tracking-wider rounded-lg transition-all"
+                    >
+                      {alert.actionLabel}
+                    </button>
+                  </div>
+                </div>
+              ))
+            ) : (
+              <div className="p-4 rounded-xl bg-emerald-500/10 border border-emerald-500/25 flex items-start gap-2.5">
+                <CheckCircle2 size={16} className="text-emerald-400 shrink-0 mt-0.5" />
+                <div>
+                  <p className="text-xs font-semibold text-emerald-300">Clean Compliance Ledger</p>
+                  <p className="text-[10px] text-slate-400 mt-0.5 leading-normal">Trio AI has found 0 anomalies or duplicate categorization flags in your workspace ledger.</p>
+                </div>
+              </div>
+            )}
+          </div>
+        </motion.div>
+      </div>
+
+      <div className="space-y-6">
           <motion.div 
             initial={{ opacity: 0, x: 20 }}
             animate={{ opacity: 1, x: 0 }}
@@ -422,35 +677,92 @@ export default function Dashboard() {
             </div>
           </motion.div>
 
+          {/* AI Gamified Tax Health Scorecard */}
           <motion.div 
             initial={{ opacity: 0, x: 20 }}
             animate={{ opacity: 1, x: 0 }}
             transition={{ delay: 0.1 }}
-            className="glass-card p-6"
+            className="glass-card p-6 border-white/10 relative overflow-hidden"
           >
-            <h2 className="text-lg font-display font-bold mb-4 flex items-center gap-2">
-              <Activity size={18} className="text-metallicGold" />
-              AI Financial Health Meter
+            <div className="absolute top-0 right-0 w-24 h-24 bg-indigo/5 blur-2xl rounded-full"></div>
+            
+            <h2 className="text-lg font-display font-bold mb-4 flex items-center gap-2 text-white">
+              <Trophy size={18} className="text-metallicGold" />
+              AI Gamified Tax Health
             </h2>
-            <div className="space-y-4">
-              <div>
-                <div className="flex justify-between text-xs mb-1">
-                  <span className="text-slate-400">Tax Efficiency Score</span>
-                  <span className="text-electricTeal font-bold">85%</span>
-                </div>
-                <div className="h-2 w-full bg-white/5 rounded-full overflow-hidden">
-                  <div className="h-full bg-gradient-to-r from-indigo to-electricTeal w-[85%] rounded-full"></div>
+
+            <div className="flex items-center gap-6 mb-6">
+              {/* Radial gauge */}
+              <div className="relative w-20 h-20 flex items-center justify-center shrink-0">
+                <svg className="w-full h-full transform -rotate-90">
+                  <circle cx="40" cy="40" r="34" className="stroke-white/5 fill-transparent" strokeWidth="6" />
+                  <circle 
+                    cx="40" 
+                    cy="40" 
+                    r="34" 
+                    className="stroke-cyan fill-transparent transition-all duration-1000" 
+                    strokeWidth="6" 
+                    strokeDasharray={2 * Math.PI * 34} 
+                    strokeDashoffset={2 * Math.PI * 34 * (1 - healthScore / 1000)}
+                    strokeLinecap="round"
+                  />
+                </svg>
+                <div className="absolute flex flex-col items-center">
+                  <span className="text-base font-display font-black text-white">{healthScore}</span>
+                  <span className="text-[8px] text-slate-500 font-mono uppercase">pts</span>
                 </div>
               </div>
+
               <div>
-                <div className="flex justify-between text-xs mb-1">
-                  <span className="text-slate-400">Compliance Score</span>
-                  <span className="text-emerald-400 font-bold">100%</span>
-                </div>
-                <div className="h-2 w-full bg-white/5 rounded-full overflow-hidden">
-                  <div className="h-full bg-emerald-400 w-full rounded-full"></div>
-                </div>
+                <p className="text-xs text-slate-400">Your Current Level</p>
+                <h3 className="text-base font-display font-bold text-cyan mt-0.5">
+                  {healthScore >= 800 ? '👑 Elite Tax Saver' : healthScore >= 600 ? '⚡ Wealth Optimizer' : '🌱 Tax Tracker'}
+                </h3>
+                <p className="text-[10px] text-slate-500 mt-1">Complete challenges below to unlock higher tax efficiency ratings.</p>
               </div>
+            </div>
+
+            {/* Challenges list */}
+            <div className="space-y-3 pt-3 border-t border-white/5">
+              <h4 className="text-[10px] text-slate-400 font-bold uppercase tracking-widest">Available Challenges</h4>
+              
+              {healthChallenges.length > 0 ? (
+                <div className="space-y-2.5">
+                  {healthChallenges.map(challenge => (
+                    <div key={challenge.id} className="p-3 rounded-xl bg-white/5 border border-white/5 flex justify-between items-start gap-2 hover:bg-white/10 transition-colors">
+                      <div className="flex-1 min-w-0">
+                        <p className="text-xs font-semibold text-white truncate">{challenge.title}</p>
+                        <p className="text-[9px] text-slate-400 leading-tight mt-0.5">{challenge.desc}</p>
+                      </div>
+                      <div className="flex flex-col items-end gap-1">
+                        <span className="text-[9px] bg-cyan/10 text-cyan border border-cyan/20 px-2 py-0.5 rounded-full font-bold font-mono">{challenge.reward}</span>
+                        {challenge.id === 'link_bank' && (
+                          <button 
+                            onClick={linkMockAccount}
+                            className="text-[9px] font-bold text-black bg-cyan hover:scale-[1.02] active:scale-95 px-2 py-0.5 rounded-md transition-all mt-1 font-sans"
+                          >
+                            Sync Bank
+                          </button>
+                        )}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                <div className="p-3 rounded-xl bg-emerald-500/10 border border-emerald-500/25 flex items-center gap-2">
+                  <CheckCircle2 size={16} className="text-emerald-400 shrink-0" />
+                  <span className="text-[10px] text-emerald-300 font-semibold">All tax challenges successfully completed!</span>
+                </div>
+              )}
+
+              {hasLinked && (
+                <button 
+                  onClick={unlinkMockAccount}
+                  className="text-[9px] text-slate-500 hover:text-red-400 mt-2 block transition-colors font-mono"
+                >
+                  Unlink synced bank account (reset challenge)
+                </button>
+              )}
             </div>
           </motion.div>
         </div>
@@ -694,11 +1006,17 @@ export default function Dashboard() {
                     animate={{ opacity: 1, y: 0 }}
                     className="p-5 rounded-2xl bg-white/5 border border-white/10 space-y-4"
                   >
-                    <h4 className="text-sm font-semibold text-white border-b border-white/10 pb-2">Extracted Transaction Details</h4>
+                    <h4 className="text-sm font-semibold text-white border-b border-white/10 pb-2 flex justify-between items-center">
+                      <span>Extracted Transaction Details</span>
+                      <span className="text-[9px] bg-emerald-500/15 text-emerald-400 border border-emerald-500/35 px-2.5 py-0.5 rounded-full font-bold uppercase tracking-wider font-mono">Match: 91%</span>
+                    </h4>
                     
                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                       <div>
-                        <label className="text-[10px] text-slate-500 uppercase tracking-widest font-bold block mb-1">Description</label>
+                        <label className="text-[10px] text-slate-500 uppercase tracking-widest font-bold mb-1 flex items-center justify-between">
+                          <span>Description</span>
+                          <span className="text-[8px] font-mono text-emerald-400 bg-emerald-400/10 px-1.5 py-0.5 rounded font-bold uppercase">94% Conf</span>
+                        </label>
                         <input 
                           type="text" 
                           value={scanResult.description} 
@@ -707,7 +1025,10 @@ export default function Dashboard() {
                         />
                       </div>
                       <div>
-                        <label className="text-[10px] text-slate-500 uppercase tracking-widest font-bold block mb-1">Amount (INR)</label>
+                        <label className="text-[10px] text-slate-500 uppercase tracking-widest font-bold mb-1 flex items-center justify-between">
+                          <span>Amount (INR)</span>
+                          <span className="text-[8px] font-mono text-emerald-400 bg-emerald-400/10 px-1.5 py-0.5 rounded font-bold uppercase">99% Conf</span>
+                        </label>
                         <div className="relative">
                           <span className="absolute left-3 top-1/2 -translate-y-1/2 text-metallicGold text-sm">₹</span>
                           <input 
@@ -719,7 +1040,10 @@ export default function Dashboard() {
                         </div>
                       </div>
                       <div>
-                        <label className="text-[10px] text-slate-500 uppercase tracking-widest font-bold block mb-1">Category</label>
+                        <label className="text-[10px] text-slate-500 uppercase tracking-widest font-bold mb-1 flex items-center justify-between">
+                          <span>Category</span>
+                          <span className="text-[8px] font-mono text-emerald-400 bg-emerald-400/10 px-1.5 py-0.5 rounded font-bold uppercase">89% Conf</span>
+                        </label>
                         <select 
                           value={scanResult.category} 
                           onChange={(e) => setScanResult({ ...scanResult, category: e.target.value })}
@@ -732,7 +1056,10 @@ export default function Dashboard() {
                         </select>
                       </div>
                       <div>
-                        <label className="text-[10px] text-slate-500 uppercase tracking-widest font-bold block mb-1">Subcategory</label>
+                        <label className="text-[10px] text-slate-500 uppercase tracking-widest font-bold mb-1 flex items-center justify-between">
+                          <span>Subcategory</span>
+                          <span className="text-[8px] font-mono text-emerald-400 bg-emerald-400/10 px-1.5 py-0.5 rounded font-bold uppercase">83% Conf</span>
+                        </label>
                         <input 
                           type="text" 
                           value={scanResult.subCategory} 

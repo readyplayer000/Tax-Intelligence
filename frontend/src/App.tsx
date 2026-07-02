@@ -113,7 +113,7 @@ export default function App() {
             <polygon points="62,52 74,55 74,101 62,98" fill="#E44A22" />
             <polygon points="80,18 92,21 92,81 80,78" fill="#248A4E" />
           </svg>
-          <span className="text-4xl font-display font-black tracking-wider bg-clip-text text-transparent bg-gradient-to-r from-[var(--heading-from)] to-[var(--heading-to)] select-none">ᴀʟᴘʜᴀ</span>
+          <span className="text-4xl tracking-wider bg-clip-text text-transparent bg-gradient-to-r from-[var(--heading-from)] to-[var(--heading-to)] select-none" style={{ fontFamily: '"Orbitron", sans-serif', fontWeight: 600 }}>Triotax</span>
         </div>
 
         {/* Center: Main Navigation Header Tabs (Hidden on mobile) */}
@@ -437,7 +437,7 @@ export default function App() {
                     <Activity size={32} className="text-cyan relative z-10" />
                   </div>
                   <h2 className="text-2xl font-display font-bold text-white mb-2">Module Initializing</h2>
-                  <p className="text-slate-400 text-sm leading-relaxed mb-8">This module is currently being calibrated by the Alpha AI engine. It will be available shortly.</p>
+                  <p className="text-slate-400 text-sm leading-relaxed mb-8">This module is currently being calibrated by the Triotax AI engine. It will be available shortly.</p>
 
                   <div className="w-full bg-black/40 h-1.5 rounded-full overflow-hidden">
                     <motion.div

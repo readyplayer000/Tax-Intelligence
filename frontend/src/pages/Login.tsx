@@ -167,8 +167,8 @@ export default function AuthPage({ onLogin }: AuthPageProps) {
                 <polygon points="87,25 99,22 99,92 87,95" fill="#1CA34D" />
               </svg>
             </div>
-            <h1 className="text-3xl font-black tracking-tight" style={{ color: 'var(--foreground)' }}>
-              Alpha TaxAI
+            <h1 className="text-3xl tracking-tight" style={{ color: 'var(--foreground)', fontFamily: '"Orbitron", sans-serif', fontWeight: 600 }}>
+              Triotax
             </h1>
             <p className="text-sm mt-1 opacity-50" style={{ color: 'var(--foreground)' }}>
               Your intelligent financial workspace

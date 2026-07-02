@@ -1,4 +1,5 @@
 import { useState, useRef, useEffect } from 'react';
+import { useLocation } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Send, Bot, User, Sparkles, AlertCircle, X, Mic, HelpCircle, Trash2 } from 'lucide-react';
 import { clsx } from 'clsx';
@@ -87,6 +88,7 @@ export default function ChatBot({ onClose }: { onClose?: () => void }) {
   const [isLoading, setIsLoading] = useState(false);
   const [showFaq, setShowFaq] = useState(false);
   const scrollRef = useRef<HTMLDivElement>(null);
+  const location = useLocation();
 
   useEffect(() => {
     if (scrollRef.current) {
@@ -122,6 +124,14 @@ export default function ChatBot({ onClose }: { onClose?: () => void }) {
       setIsLoading(false);
     }
   };
+
+  useEffect(() => {
+    if (location.state?.autoPrompt) {
+      handleSend(location.state.autoPrompt);
+      // Clear the state so it doesn't trigger again on reload
+      window.history.replaceState({}, document.title);
+    }
+  }, [location.state]);
 
   return (
     <div className="flex flex-col h-full w-full bg-midnight/60 backdrop-blur-3xl relative overflow-hidden">

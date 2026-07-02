@@ -1,7 +1,8 @@
 import { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { PieChart, Pie, Cell, ResponsiveContainer, BarChart, Bar, XAxis, YAxis, Tooltip, CartesianGrid, AreaChart, Area } from 'recharts';
-import { TrendingUp, TrendingDown, Target, Zap } from 'lucide-react';
+import { TrendingUp, TrendingDown, Target, Zap, Sliders, Info, Check } from 'lucide-react';
 
 const expenseData = [
   { name: 'Rent', value: 35000 },
@@ -21,11 +22,99 @@ const monthlyComparison = [
 ];
 
 export default function Analytics() {
+  const navigate = useNavigate();
   const [isLight, setIsLight] = useState(() => document.documentElement.getAttribute('data-theme') === 'illuminate');
 
   useEffect(() => {
     setIsLight(document.documentElement.getAttribute('data-theme') === 'illuminate');
   }, []);
+
+  // Simulator States
+  const [simIncome, setSimIncome] = useState(1200000);
+  const [sim80C, setSim80C] = useState(150000);
+  const [has80D, setHas80D] = useState(true);
+  const [hasHRA, setHasHRA] = useState(false);
+
+  const calculateTaxes = (income: number, c80: number, d80: number, hra: number) => {
+    const stdOld = 50000;
+    const stdNew = 75000;
+
+    // New Regime
+    const taxableNew = Math.max(0, income - stdNew);
+    let taxNew = 0;
+    if (taxableNew > 300000) {
+      let temp = taxableNew - 300000;
+      // 3L - 6L (5%)
+      const s1 = Math.min(temp, 300000);
+      taxNew += s1 * 0.05;
+      temp -= s1;
+      if (temp > 0) {
+        // 6L - 9L (10%)
+        const s2 = Math.min(temp, 300000);
+        taxNew += s2 * 0.10;
+        temp -= s2;
+      }
+      if (temp > 0) {
+        // 9L - 12L (15%)
+        const s3 = Math.min(temp, 300000);
+        taxNew += s3 * 0.15;
+        temp -= s3;
+      }
+      if (temp > 0) {
+        // 12L - 15L (20%)
+        const s4 = Math.min(temp, 300000);
+        taxNew += s4 * 0.20;
+        temp -= s4;
+      }
+      if (temp > 0) {
+        // > 15L (30%)
+        taxNew += temp * 0.30;
+      }
+    }
+    // Rebate under 87A (New Regime tax is 0 if taxable income <= 7L)
+    if (taxableNew <= 700000) {
+      taxNew = 0;
+    }
+    const totalTaxNew = taxNew * 1.04;
+
+    // Old Regime
+    const deductionsOld = c80 + d80 + hra;
+    const taxableOld = Math.max(0, income - stdOld - deductionsOld);
+    let taxOld = 0;
+    if (taxableOld > 250000) {
+      let temp = taxableOld - 250000;
+      // 2.5L - 5L (5%)
+      const s1 = Math.min(temp, 250000);
+      taxOld += s1 * 0.05;
+      temp -= s1;
+      if (temp > 0) {
+        // 5L - 10L (20%)
+        const s2 = Math.min(temp, 500000);
+        taxOld += s2 * 0.20;
+        temp -= s2;
+      }
+      if (temp > 0) {
+        // > 10L (30%)
+        taxOld += temp * 0.30;
+      }
+    }
+    // Rebate under 87A (Old Regime tax is 0 if taxable income <= 5L)
+    if (taxableOld <= 500000) {
+      taxOld = 0;
+    }
+    const totalTaxOld = taxOld * 1.04;
+
+    return {
+      taxableNew,
+      taxNew: Math.round(totalTaxNew),
+      taxableOld,
+      taxOld: Math.round(totalTaxOld),
+      savings: Math.abs(Math.round(totalTaxNew - totalTaxOld)),
+      better: totalTaxNew < totalTaxOld ? 'New Regime' : 'Old Regime'
+    };
+  };
+
+  const simResults = calculateTaxes(simIncome, sim80C, has80D ? 25000 : 0, hasHRA ? 150000 : 0);
 
   const COLORS = ['#D4AF37', '#00E5FF', '#8B5CF6', '#4F46E5', isLight ? '#1C1917' : '#F8FAFC'];
   return (
@@ -178,12 +267,179 @@ export default function Analytics() {
             <p className="text-slate-400 text-sm leading-relaxed mb-4">
               Your current spending habits suggest that switching to the **Old Regime** could save you an estimated ₹24,500 more than the New Regime, provided you maximize Section 80C and 80D deductions. 
             </p>
-            <button className="px-6 py-2 bg-metallicGold text-black font-bold rounded-xl text-sm hover:scale-105 transition-transform">
+            <button 
+              onClick={() => navigate('/ai', { state: { autoPrompt: 'Can you provide a detailed comparison between the Old and New tax regimes based on my current spending habits? Which one is generally better for me?' } })}
+              className="px-6 py-2 bg-metallicGold text-black font-bold rounded-xl text-sm hover:scale-105 transition-transform"
+            >
               Detailed Comparison
             </button>
           </div>
         </motion.div>
       </div>
+
+      {/* What-If Tax Scenario Simulator */}
+      <motion.div
+        initial={{ opacity: 0, y: 30 }}
+        animate={{ opacity: 1, y: 0 }}
+        className="glass-card p-6 sm:p-8 bg-gradient-to-br from-indigo/5 via-transparent to-cyan/5 border-white/10 mt-8"
+      >
+        <div className="flex items-center gap-3 mb-6">
+          <div className="p-3 bg-gradient-to-br from-indigo to-cyan rounded-2xl text-white shadow-[0_0_15px_rgba(0,217,255,0.4)]">
+            <Sliders size={24} />
+          </div>
+          <div>
+            <h2 className="text-2xl font-display font-bold text-white">What-If Tax Scenario Simulator</h2>
+            <p className="text-slate-400 text-sm">Simulate tax brackets, investment changes, and exemptions in real-time.</p>
+          </div>
+        </div>
+
+        <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
+          {/* Controls - 7 columns */}
+          <div className="lg:col-span-7 space-y-6">
+            {/* Slider 1: Gross Income */}
+            <div className="space-y-2">
+              <div className="flex justify-between items-center">
+                <label className="text-xs font-semibold text-slate-300 uppercase tracking-wider">Gross Annual Income</label>
+                <span className="text-lg font-display font-bold text-white">₹{(simIncome / 100000).toFixed(2)}L</span>
+              </div>
+              <input
+                type="range"
+                min="500000"
+                max="4000000"
+                step="50000"
+                value={simIncome}
+                onChange={(e) => setSimIncome(Number(e.target.value))}
+                className="w-full h-2 bg-white/10 rounded-lg appearance-none cursor-pointer accent-cyan"
+              />
+              <div className="flex justify-between text-[10px] text-slate-500 font-mono">
+                <span>₹5L</span>
+                <span>₹20L</span>
+                <span>₹40L</span>
+              </div>
+            </div>
+
+            {/* Slider 2: 80C Investments */}
+            <div className="space-y-2">
+              <div className="flex justify-between items-center">
+                <label className="text-xs font-semibold text-slate-300 uppercase tracking-wider flex items-center gap-1.5">
+                  Section 80C Investments
+                  <span className="text-[10px] bg-white/5 border border-white/10 text-slate-400 px-1.5 py-0.5 rounded font-mono">Max ₹1.5L</span>
+                </label>
+                <span className="text-lg font-display font-bold text-cyan">₹{(sim80C / 100000).toFixed(2)}L</span>
+              </div>
+              <input
+                type="range"
+                min="0"
+                max="150000"
+                step="5000"
+                value={sim80C}
+                onChange={(e) => setSim80C(Number(e.target.value))}
+                className="w-full h-2 bg-white/10 rounded-lg appearance-none cursor-pointer accent-cyan"
+              />
+              <div className="flex justify-between text-[10px] text-slate-500 font-mono">
+                <span>₹0</span>
+                <span>₹75k</span>
+                <span>₹1.5L</span>
+              </div>
+            </div>
+
+            {/* Checkboxes & Extra Deductions */}
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 pt-2">
+              <div className="flex items-start gap-3 p-4 rounded-xl bg-white/5 border border-white/5 hover:bg-white/10 transition-all cursor-pointer select-none" onClick={() => setHas80D(!has80D)}>
+                <input
+                  type="checkbox"
+                  checked={has80D}
+                  readOnly
+                  className="mt-1 accent-cyan"
+                />
+                <div>
+                  <p className="text-xs font-semibold text-white">Section 80D (Health Insurance)</p>
+                  <p className="text-[10px] text-slate-400 mt-0.5">Deduct up to ₹25,000 for self/family policies.</p>
+                </div>
+              </div>
+
+              <div className="flex items-start gap-3 p-4 rounded-xl bg-white/5 border border-white/5 hover:bg-white/10 transition-all cursor-pointer select-none" onClick={() => setHasHRA(!hasHRA)}>
+                <input
+                  type="checkbox"
+                  checked={hasHRA}
+                  readOnly
+                  className="mt-1 accent-cyan"
+                />
+                <div>
+                  <p className="text-xs font-semibold text-white">HRA Exemption</p>
+                  <p className="text-[10px] text-slate-400 mt-0.5">Rent house allowance up to ₹1,50,000 claim.</p>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          {/* Projections & Recommendations - 5 columns */}
+          <div className="lg:col-span-5 flex flex-col justify-between p-6 rounded-2xl bg-black/40 border border-white/10 relative overflow-hidden group">
+            {/* aurora backing */}
+            <div className="absolute top-0 right-0 w-32 h-32 bg-cyan/10 blur-3xl rounded-full"></div>
+            
+            <div className="space-y-6 relative z-10">
+              <h3 className="text-sm font-semibold uppercase tracking-wider text-slate-400">Regime Comparison</h3>
+              
+              <div className="space-y-4">
+                {/* New Regime bar */}
+                <div>
+                  <div className="flex justify-between text-xs mb-1">
+                    <span className="text-slate-300">New Tax Regime</span>
+                    <span className="text-white font-bold">₹{simResults.taxNew.toLocaleString('en-IN')}</span>
+                  </div>
+                  <div className="h-3 w-full bg-white/5 rounded-full overflow-hidden">
+                    <motion.div 
+                      animate={{ width: `${Math.min(100, (simResults.taxNew / (simIncome || 1)) * 400)}%` }}
+                      className="h-full bg-cyan rounded-full" 
+                    />
+                  </div>
+                </div>
+
+                {/* Old Regime bar */}
+                <div>
+                  <div className="flex justify-between text-xs mb-1">
+                    <span className="text-slate-300">Old Tax Regime</span>
+                    <span className="text-white font-bold">₹{simResults.taxOld.toLocaleString('en-IN')}</span>
+                  </div>
+                  <div className="h-3 w-full bg-white/5 rounded-full overflow-hidden">
+                    <motion.div 
+                      animate={{ width: `${Math.min(100, (simResults.taxOld / (simIncome || 1)) * 400)}%` }}
+                      className="h-full bg-indigo rounded-full" 
+                    />
+                  </div>
+                </div>
+              </div>
+
+              {/* Savings Announcement */}
+              <div className="p-4 rounded-xl bg-cyan/5 border border-cyan/20">
+                {simResults.savings > 0 ? (
+                  <div>
+                    <p className="text-[10px] text-cyan uppercase font-mono tracking-widest">Recommended Choice</p>
+                    <p className="text-base font-display font-bold text-white mt-1">
+                      Switch to <span className="text-cyan">{simResults.better}</span>
+                    </p>
+                    <p className="text-xs text-slate-400 mt-1">
+                      You will save <span className="text-emerald-400 font-bold">₹{simResults.savings.toLocaleString('en-IN')}</span> annually.
+                    </p>
+                  </div>
+                ) : (
+                  <div>
+                    <p className="text-[10px] text-slate-400 uppercase font-mono tracking-widest">Recommended Choice</p>
+                    <p className="text-base font-display font-bold text-white mt-1">Both Regimes are Equal</p>
+                    <p className="text-xs text-slate-400 mt-1">Tax liability is identical in both configurations.</p>
+                  </div>
+                )}
+              </div>
+            </div>
+
+            <div className="mt-6 pt-4 border-t border-white/5 relative z-10 flex justify-between items-center text-xs text-slate-500 font-mono">
+              <span>* FY 2026-27 Slabs</span>
+              <span className="flex items-center gap-1"><Info size={12} /> Includes standard deductions</span>
+            </div>
+          </div>
+        </div>
+      </motion.div>
     </div>
   );
 }
