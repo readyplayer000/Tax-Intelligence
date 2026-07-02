@@ -21,7 +21,8 @@ __pycache__/
 Thumbs.db
 
 # Project specific
-db.json
+# Exclude root db.json but KEEP backend/db.json (seed data for deployment)
+/db.json
 /frontend/node_modules
 /backend/node_modules
 /shared/node_modules

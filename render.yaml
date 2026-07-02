@@ -1,0 +1,32 @@
+services:
+  # Backend - Node.js + Express
+  - type: web
+    name: taxai-backend
+    runtime: node
+    rootDir: backend
+    buildCommand: npm install && npm run build
+    startCommand: node dist/backend/src/index.js
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: JWT_SECRET
+        sync: false
+      - key: AI_AGENT_URL
+        sync: false
+      - key: FRONTEND_URL
+        sync: false
+
+  # AI Agent - Python + FastAPI
+  - type: web
+    name: taxai-agent
+    runtime: python
+    rootDir: ai-agent
+    buildCommand: pip install -r requirements.txt
+    startCommand: uvicorn app.main:app --host 0.0.0.0 --port $PORT
+    envVars:
+      - key: GOOGLE_API_KEY
+        sync: false
+      - key: GROQ_API_KEY
+        sync: false
+      - key: BACKEND_INTERNAL_URL
+        sync: false
