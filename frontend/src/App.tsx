@@ -233,11 +233,11 @@ export default function App() {
             initial={{ opacity: 0, height: 0 }}
             animate={{ opacity: 1, height: 'auto' }}
             exit={{ opacity: 0, height: 0 }}
-            className="lg:hidden border-b border-white/10 bg-black/85 backdrop-blur-lg overflow-hidden z-20 flex flex-col px-6 py-6 gap-6"
+            className="lg:hidden border-b border-[var(--border-color)] bg-[var(--header-bg)] backdrop-blur-lg overflow-hidden z-20 flex flex-col px-6 py-6 gap-6"
           >
             {/* Search bar */}
             <div className="relative w-full">
-              <div className="flex items-center bg-black/20 focus-within:bg-black/30 border border-white/10 rounded-full px-3.5 py-2.5 gap-2 text-slate-400 focus-within:text-white transition-all">
+              <div className="flex items-center bg-black/20 focus-within:bg-black/30 border border-[var(--border-color)] rounded-full px-3.5 py-2.5 gap-2 text-slate-400 focus-within:text-white transition-all">
                 <Search size={16} />
                 <input
                   type="text"
@@ -276,7 +276,7 @@ export default function App() {
                 <div className={clsx(
                   "flex items-center gap-3 px-4 py-3 rounded-xl transition-all duration-300 font-medium text-sm border",
                   activeMainTab === 'overview'
-                    ? "text-[#1C1917] bg-[#8EDAD0] border-white/10 font-semibold"
+                    ? "text-[#1C1917] bg-[#8EDAD0] border-[var(--border-color)] font-semibold"
                     : "text-slate-300 hover:text-white border-transparent bg-white/5"
                 )}>
                   <LayoutDashboard size={18} />
@@ -287,7 +287,7 @@ export default function App() {
                 <div className={clsx(
                   "flex items-center gap-3 px-4 py-3 rounded-xl transition-all duration-300 font-medium text-sm border",
                   activeMainTab === 'ledger'
-                    ? "text-[#1C1917] bg-[#FCD782] border-white/10 font-semibold"
+                    ? "text-[#1C1917] bg-[#FCD782] border-[var(--border-color)] font-semibold"
                     : "text-slate-300 hover:text-white border-transparent bg-white/5"
                 )}>
                   <FileText size={18} />
@@ -298,7 +298,7 @@ export default function App() {
                 <div className={clsx(
                   "flex items-center gap-3 px-4 py-3 rounded-xl transition-all duration-300 font-medium text-sm border",
                   activeMainTab === 'reports'
-                    ? "text-[#1C1917] bg-[#FF9A9A] border-white/10 font-semibold"
+                    ? "text-[#1C1917] bg-[#FF9A9A] border-[var(--border-color)] font-semibold"
                     : "text-slate-300 hover:text-white border-transparent bg-white/5"
                 )}>
                   <PieChart size={18} />
@@ -309,7 +309,7 @@ export default function App() {
                 <div className={clsx(
                   "flex items-center gap-3 px-4 py-3 rounded-xl transition-all duration-300 font-medium text-sm border",
                   activeMainTab === 'ai'
-                    ? "text-[#1C1917] bg-[#FF7575] border-white/10 font-semibold"
+                    ? "text-[#1C1917] bg-[#FF7575] border-[var(--border-color)] font-semibold"
                     : "text-slate-300 hover:text-white border-transparent bg-white/5"
                 )}>
                   <Bot size={18} />
@@ -320,7 +320,7 @@ export default function App() {
                 <div className={clsx(
                   "flex items-center gap-3 px-4 py-3 rounded-xl transition-all duration-300 font-medium text-sm border",
                   activeMainTab === 'preferences'
-                    ? "text-[#1C1917] bg-[#A3CEF1] border-white/10 font-semibold"
+                    ? "text-[#1C1917] bg-[#A3CEF1] border-[var(--border-color)] font-semibold"
                     : "text-slate-300 hover:text-white border-transparent bg-white/5"
                 )}>
                   <Settings size={18} />
@@ -330,7 +330,7 @@ export default function App() {
             </nav>
 
             {/* Profile actions */}
-            <div className="border-t border-white/10 pt-4 flex flex-col gap-2">
+            <div className="border-t border-[var(--border-color)] pt-4 flex flex-col gap-2">
               <div className="px-4 py-2 mb-2 flex items-center gap-3">
                 <img
                   src="https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=100&q=80"

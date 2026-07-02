@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import { twMerge } from 'tailwind-merge';
 import { clsx } from 'clsx';
@@ -29,6 +29,11 @@ export default function Dashboard() {
   const [editData, setEditData] = useState<any>(null);
   const [selectedFY, setSelectedFY] = useState('2024-25');
   const [demoNotice, setDemoNotice] = useState(false);
+  const [isLight, setIsLight] = useState(() => document.documentElement.getAttribute('data-theme') === 'illuminate');
+
+  useEffect(() => {
+    setIsLight(document.documentElement.getAttribute('data-theme') === 'illuminate');
+  }, []);
 
   const storedUser = JSON.parse(localStorage.getItem('taxai-user') || '{}');
   const isDemo = storedUser?.id === 'demo';
@@ -229,7 +234,7 @@ export default function Dashboard() {
           animate={{ opacity: 1, scale: 1 }}
           className="lg:col-span-2 glass-card p-6 flex flex-col"
         >
-          <div className="flex items-center justify-between mb-6">
+          <div className="flex flex-col sm:flex-row gap-4 justify-between items-start sm:items-center mb-6">
             <div className="flex items-center gap-3">
               <h2 className="text-xl font-display font-bold">Smart Analytics</h2>
               <div className="relative">
@@ -238,10 +243,10 @@ export default function Dashboard() {
                   onChange={(e) => setSelectedFY(e.target.value)}
                   className="appearance-none pl-3 pr-8 py-1 rounded-full bg-emerald-500/10 border border-emerald-500/20 text-[10px] font-bold text-emerald-400 uppercase tracking-widest outline-none cursor-pointer hover:bg-emerald-500/20 transition-colors"
                 >
-                  <option value="2023-24" className="bg-slate-900 text-white">FY 2023-24</option>
-                  <option value="2024-25" className="bg-slate-900 text-white">FY 2024-25</option>
-                  <option value="2025-26" className="bg-slate-900 text-white">FY 2025-26 • Active</option>
-                  <option value="2026-27" className="bg-slate-900 text-white">FY 2026-27</option>
+                  <option value="2023-24" className="bg-[var(--header-bg)] text-[var(--foreground)]">FY 2023-24</option>
+                  <option value="2024-25" className="bg-[var(--header-bg)] text-[var(--foreground)]">FY 2024-25</option>
+                  <option value="2025-26" className="bg-[var(--header-bg)] text-[var(--foreground)]">FY 2025-26 • Active</option>
+                  <option value="2026-27" className="bg-[var(--header-bg)] text-[var(--foreground)]">FY 2026-27</option>
                 </select>
                 <div className="absolute right-2.5 top-1/2 -translate-y-1/2 pointer-events-none text-emerald-400">
                   <svg width="10" height="6" viewBox="0 0 10 6" fill="none" xmlns="http://www.w3.org/2000/svg">
@@ -268,9 +273,9 @@ export default function Dashboard() {
                     <stop offset="95%" stopColor="#4F46E5" stopOpacity={0}/>
                   </linearGradient>
                 </defs>
-                <XAxis dataKey="name" stroke="#475569" fontSize={12} tickLine={false} axisLine={false} />
-                <YAxis stroke="#475569" fontSize={12} tickLine={false} axisLine={false} tickFormatter={(value) => `₹${value/1000}k`} domain={['dataMin - 5000', 'auto']} />
-                <Tooltip contentStyle={{ backgroundColor: 'rgba(11,16,32,0.9)', border: '1px solid rgba(255,255,255,0.1)', borderRadius: '8px' }} />
+                <XAxis dataKey="name" stroke={isLight ? "#6B7280" : "#475569"} fontSize={12} tickLine={false} axisLine={false} />
+                <YAxis stroke={isLight ? "#6B7280" : "#475569"} fontSize={12} tickLine={false} axisLine={false} tickFormatter={(value) => `₹${value/1000}k`} domain={['dataMin - 5000', 'auto']} />
+                <Tooltip contentStyle={isLight ? { backgroundColor: '#FFFDF4', border: '1px solid rgba(141,110,99,0.2)', borderRadius: '8px', color: '#1C1917' } : { backgroundColor: 'rgba(11,16,32,0.9)', border: '1px solid rgba(255,255,255,0.1)', borderRadius: '8px', color: '#F8FAFC' }} />
                 <Area type="monotone" dataKey="income" stroke="#00D9FF" strokeWidth={3} fillOpacity={1} fill="url(#colorIncome)" />
                 <Area type="monotone" dataKey="expense" stroke="#4F46E5" strokeWidth={3} fillOpacity={1} fill="url(#colorExpense)" />
               </AreaChart>
