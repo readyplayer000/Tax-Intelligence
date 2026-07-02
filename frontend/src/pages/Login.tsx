@@ -132,14 +132,15 @@ export default function AuthPage({ onLogin }: AuthPageProps) {
 
   return (
     <div
-      className="h-screen w-full flex flex-col items-center justify-center relative overflow-hidden gap-3"
+      className="min-h-screen w-full flex flex-col items-center justify-center relative overflow-x-hidden gap-4 py-8"
       style={{ background: 'var(--background)' }}
     >
       {/* Ambient orbs */}
-      <div className="absolute top-[-10%] left-[-5%] w-[500px] h-[500px] rounded-full blur-[130px] opacity-40"
+      <div className="absolute top-[-10%] left-[-5%] w-[500px] h-[500px] rounded-full blur-[130px] opacity-40 pointer-events-none"
         style={{ background: 'var(--cyber-g-1)' }} />
-      <div className="absolute bottom-[-10%] right-[-5%] w-[450px] h-[450px] rounded-full blur-[110px] opacity-30"
+      <div className="absolute bottom-[-10%] right-[-5%] w-[450px] h-[450px] rounded-full blur-[110px] opacity-30 pointer-events-none"
         style={{ background: 'var(--cyber-g-2)' }} />
+
 
       <motion.div
         initial={{ opacity: 0, y: 20, scale: 0.97 }}
