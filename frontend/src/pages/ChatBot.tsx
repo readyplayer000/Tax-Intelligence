@@ -1,6 +1,6 @@
 import { useState, useRef, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Send, Bot, User, Sparkles, AlertCircle, X, Mic, HelpCircle } from 'lucide-react';
+import { Send, Bot, User, Sparkles, AlertCircle, X, Mic, HelpCircle, Trash2 } from 'lucide-react';
 import { clsx } from 'clsx';
 import axios from 'axios';
 import ReactMarkdown from 'react-markdown';
@@ -57,6 +57,26 @@ const FAQ_ITEMS = [
     query: 'How are Capital Gains taxed under the new 2026 rules? What happened to indexation?',
     category: 'Investments'
   },
+  {
+    label: 'Home Loan Rebate',
+    query: 'What are the tax benefits on Home Loan interest and principal under Section 24(b) and Section 80C?',
+    category: 'Deductions'
+  },
+  {
+    label: 'GST Invoice Rules',
+    query: 'What are the mandatory fields and rules for raising a valid GST Tax Invoice in 2026?',
+    category: 'Business'
+  },
+  {
+    label: 'Other Income Tax',
+    query: 'How is interest income, dividend income, and gift income taxed under the current guidelines?',
+    category: 'General'
+  },
+  {
+    label: 'Corporate Tax Rates',
+    query: 'What are the corporate tax rate options for domestic companies in India under Section 115BAA/115BAB?',
+    category: 'Business'
+  }
 ];
 
 export default function ChatBot({ onClose }: { onClose?: () => void }) {
@@ -119,7 +139,7 @@ export default function ChatBot({ onClose }: { onClose?: () => void }) {
             </div>
           </div>
           <div>
-            <h1 className="text-lg font-display font-bold leading-tight bg-clip-text text-transparent bg-gradient-to-r from-white to-cyan">Trio</h1>
+            <h1 className="text-lg font-display font-bold leading-tight bg-clip-text text-transparent bg-gradient-to-r from-[var(--heading-from)] to-[var(--cyan-color)]">Trio</h1>
             <p className="text-[10px] text-cyan font-mono uppercase tracking-widest flex items-center gap-1">
               <span className="w-1.5 h-1.5 rounded-full bg-cyan animate-pulse"></span>
               Neural Link Active
@@ -127,6 +147,15 @@ export default function ChatBot({ onClose }: { onClose?: () => void }) {
           </div>
         </div>
         <div className="flex items-center gap-2">
+          <button 
+            onClick={() => setMessages([
+              { role: 'assistant', content: 'Hello! I am **Trio**, your holographic financial strategist. I have secure access to your ledger and the latest tax laws. \n\nHow can I optimize your wealth today?' }
+            ])}
+            title="Clear Chat History"
+            className="p-2 text-slate-400 hover:text-red-400 hover:bg-white/10 rounded-full transition-all duration-300"
+          >
+            <Trash2 size={20} />
+          </button>
           <button 
             onClick={() => setShowFaq(!showFaq)}
             className={clsx(

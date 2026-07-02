@@ -30,3 +30,7 @@ Thumbs.db
 # Compiled JS (prevent the previous bug)
 /shared/src/**/*.js
 /shared/src/**/*.js.map
+
+# Exclude dynamic credentials/users DB
+/backend/users.json
+

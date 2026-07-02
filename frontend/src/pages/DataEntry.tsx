@@ -5,7 +5,8 @@ import { entrySchema, type TaxEntryInput } from 'shared';
 import { motion } from 'framer-motion';
 import { Plus, Receipt, Landmark, Wallet, HelpCircle, Sparkles, Pencil, Trash2, Activity } from 'lucide-react';
 import { clsx } from 'clsx';
-import axios from 'axios';
+import api from '../lib/api';
+import { DEMO_ENTRIES } from '../lib/demoData';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 
 const CATEGORIES = [
@@ -28,7 +29,13 @@ export default function DataEntry() {
   const [editingId, setEditingId] = useState<string | null>(null);
   const [quickEditId, setQuickEditId] = useState<string | null>(null);
   const [editData, setEditData] = useState<any>(null);
+  const [demoNotice, setDemoNotice] = useState(false);
   const queryClient = useQueryClient();
+
+  const storedUser = JSON.parse(localStorage.getItem('taxai-user') || '{}');
+  const isDemo = storedUser?.id === 'demo';
+
+  const showDemoBlock = () => { setDemoNotice(true); setTimeout(() => setDemoNotice(false), 2500); };
 
   const { register, handleSubmit, reset, setValue, formState: { errors, isSubmitting } } = useForm<TaxEntryInput>({
     resolver: zodResolver(entrySchema),
@@ -44,15 +51,19 @@ export default function DataEntry() {
   });
 
   const { data: entries = [] } = useQuery({
-    queryKey: ['entries'],
+    queryKey: ['entries', isDemo],
     queryFn: async () => {
-      const { data } = await axios.get('/api/entries?userId=user_123');
+      if (isDemo) return DEMO_ENTRIES;
+      const { data } = await api.get('/api/entries');
       return data;
     }
   });
 
   const deleteMutation = useMutation({
-    mutationFn: (id: string) => axios.delete(`/api/entries/${id}`),
+    mutationFn: async (id: string) => {
+      if (isDemo) { showDemoBlock(); return; }
+      await api.delete(`/api/entries/${id}`);
+    },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['entries'] });
       queryClient.invalidateQueries({ queryKey: ['summary'] });
@@ -60,11 +71,13 @@ export default function DataEntry() {
   });
 
   const toggleMutation = useMutation({
-    mutationFn: (entry: any) => 
-      axios.put(`/api/entries/${entry.id}`, {
+    mutationFn: async (entry: any) => {
+      if (isDemo) { showDemoBlock(); return; }
+      await api.put(`/api/entries/${entry.id}`, {
         ...entry,
         status: entry.status === 'EXCLUDED' ? 'ACTIVE' : 'EXCLUDED'
-      }),
+      });
+    },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['entries'] });
       queryClient.invalidateQueries({ queryKey: ['summary'] });
@@ -72,7 +85,10 @@ export default function DataEntry() {
   });
 
   const quickSaveMutation = useMutation({
-    mutationFn: (data: any) => axios.put(`/api/entries/${data.id}`, data),
+    mutationFn: async (data: any) => {
+      if (isDemo) { showDemoBlock(); return; }
+      await api.put(`/api/entries/${data.id}`, data);
+    },
     onSuccess: () => {
       setQuickEditId(null);
       queryClient.invalidateQueries({ queryKey: ['entries'] });
@@ -97,7 +113,7 @@ export default function DataEntry() {
     
     try {
       await Promise.all(entries.map((e: any) => 
-        axios.put(`http://localhost:4000/api/entries/${e.id}`, { ...e, status: newStatus })
+        api.put(`/api/entries/${e.id}`, { ...e, status: newStatus })
       ));
       queryClient.invalidateQueries({ queryKey: ['entries'] });
       queryClient.invalidateQueries({ queryKey: ['summary'] });
@@ -107,11 +123,12 @@ export default function DataEntry() {
   };
 
   const onSubmit = async (data: TaxEntryInput) => {
+    if (isDemo) { showDemoBlock(); return; }
     try {
       if (editingId) {
-        await axios.put(`/api/entries/${editingId}`, data);
+        await api.put(`/api/entries/${editingId}`, data);
       } else {
-        await axios.post('/api/entries', data);
+        await api.post('/api/entries', data);
       }
       
       setSuccess(true);
@@ -154,6 +171,7 @@ export default function DataEntry() {
   };
 
   const loadSampleData = async () => {
+    if (isDemo) { showDemoBlock(); return; }
     const samples = [
       { category: 'INCOME', subCategory: 'Salary', description: 'Monthly Salary', amount: 150000, date: '2024-11-01', financialYear: '2024-25', mode: 'BANK', note: 'Primary income source' },
       { category: 'EXPENSE', subCategory: 'Rent', description: 'Monthly House Rent', amount: 35000, date: '2024-11-05', financialYear: '2024-25', mode: 'BANK', note: 'HRA claimable' },
@@ -164,7 +182,7 @@ export default function DataEntry() {
 
     try {
       for (const sample of samples) {
-        await axios.post('/api/entries', sample);
+        await api.post('/api/entries', sample);
       }
       queryClient.invalidateQueries({ queryKey: ['entries'] });
       queryClient.invalidateQueries({ queryKey: ['summary'] });
@@ -202,6 +220,15 @@ export default function DataEntry() {
           </button>
         </div>
       </header>
+
+      {/* Demo mode banner */}
+      {isDemo && (
+        <div className="flex items-center justify-between px-5 py-3 rounded-2xl border text-sm"
+          style={{ background: 'linear-gradient(135deg, rgba(249,178,215,0.2), rgba(207,236,243,0.2))', borderColor: 'var(--glass-border)', color: 'var(--foreground)' }}>
+          <span>🎭 <strong>Demo Mode</strong> — Viewing 33 sample transactions. Sign up to add your own data.</span>
+          {demoNotice && <span className="text-xs font-semibold text-rose-500 animate-pulse">🔒 Read-only in demo</span>}
+        </div>
+      )}
 
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
         {CATEGORIES.map((cat) => (

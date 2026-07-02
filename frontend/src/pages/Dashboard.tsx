@@ -3,7 +3,8 @@ import { motion } from 'framer-motion';
 import { twMerge } from 'tailwind-merge';
 import { clsx } from 'clsx';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import axios from 'axios';
+import api from '../lib/api';
+import { DEMO_ENTRIES, DEMO_SUMMARY } from '../lib/demoData';
 import { Wallet, PiggyBank, Receipt, Sparkles, ScanLine, Activity, CheckCircle, AlertCircle, Pencil, Trash2 } from 'lucide-react';
 import { AreaChart, Area, XAxis, YAxis, Tooltip, ResponsiveContainer } from 'recharts';
 import { useNavigate } from 'react-router-dom';
@@ -15,8 +16,9 @@ interface SummaryData {
   deduction: number;
 }
 
-const fetchSummary = async (): Promise<SummaryData> => {
-  const { data } = await axios.get('/api/entries/summary');
+const fetchSummary = async (isDemo: boolean) => {
+  if (isDemo) return DEMO_SUMMARY;
+  const { data } = await api.get('/api/entries/summary');
   return data;
 };
 
@@ -25,25 +27,33 @@ export default function Dashboard() {
   const navigate = useNavigate();
   const [quickEditId, setQuickEditId] = useState<string | null>(null);
   const [editData, setEditData] = useState<any>(null);
-  const [selectedFY, setSelectedFY] = useState('2025-26');
+  const [selectedFY, setSelectedFY] = useState('2024-25');
+  const [demoNotice, setDemoNotice] = useState(false);
+
+  const storedUser = JSON.parse(localStorage.getItem('taxai-user') || '{}');
+  const isDemo = storedUser?.id === 'demo';
 
   const { data: summary, isLoading } = useQuery({
-    queryKey: ['summary'],
-    queryFn: fetchSummary,
-    refetchInterval: 5000,
+    queryKey: ['summary', isDemo],
+    queryFn: () => fetchSummary(isDemo),
+    refetchInterval: isDemo ? false : 5000,
   });
 
   const { data: entries = [] } = useQuery({
-    queryKey: ['entries'],
+    queryKey: ['entries', isDemo],
     queryFn: async () => {
-      const { data } = await axios.get('/api/entries?userId=user_123');
+      if (isDemo) return DEMO_ENTRIES;
+      const { data } = await api.get('/api/entries');
       return data;
     },
-    refetchInterval: 5000,
+    refetchInterval: isDemo ? false : 5000,
   });
 
   const deleteMutation = useMutation({
-    mutationFn: (id: string) => axios.delete(`/api/entries/${id}`),
+    mutationFn: async (id: string) => {
+      if (isDemo) { setDemoNotice(true); setTimeout(() => setDemoNotice(false), 2500); return; }
+      await api.delete(`/api/entries/${id}`);
+    },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['entries'] });
       queryClient.invalidateQueries({ queryKey: ['summary'] });
@@ -51,11 +61,13 @@ export default function Dashboard() {
   });
 
   const toggleMutation = useMutation({
-    mutationFn: (entry: any) => 
-      axios.put(`/api/entries/${entry.id}`, {
+    mutationFn: async (entry: any) => {
+      if (isDemo) { setDemoNotice(true); setTimeout(() => setDemoNotice(false), 2500); return; }
+      await api.put(`/api/entries/${entry.id}`, {
         ...entry,
         status: entry.status === 'EXCLUDED' ? 'ACTIVE' : 'EXCLUDED'
-      }),
+      });
+    },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['entries'] });
       queryClient.invalidateQueries({ queryKey: ['summary'] });
@@ -63,7 +75,10 @@ export default function Dashboard() {
   });
 
   const quickSaveMutation = useMutation({
-    mutationFn: (data: any) => axios.put(`/api/entries/${data.id}`, data),
+    mutationFn: async (data: any) => {
+      if (isDemo) { setDemoNotice(true); setTimeout(() => setDemoNotice(false), 2500); return; }
+      await api.put(`/api/entries/${data.id}`, data);
+    },
     onSuccess: () => {
       setQuickEditId(null);
       queryClient.invalidateQueries({ queryKey: ['entries'] });
@@ -83,11 +98,12 @@ export default function Dashboard() {
   };
 
   const toggleAll = async () => {
+    if (isDemo) { setDemoNotice(true); setTimeout(() => setDemoNotice(false), 2500); return; }
     const allExcluded = entries.every((e: any) => e.status === 'EXCLUDED');
     const newStatus = allExcluded ? 'ACTIVE' : 'EXCLUDED';
     try {
       await Promise.all(entries.map((e: any) => 
-        axios.put(`/api/entries/${e.id}`, { ...e, status: newStatus })
+        api.put(`/api/entries/${e.id}`, { ...e, status: newStatus })
       ));
       queryClient.invalidateQueries({ queryKey: ['entries'] });
       queryClient.invalidateQueries({ queryKey: ['summary'] });
@@ -134,7 +150,7 @@ export default function Dashboard() {
     <div className="p-8 max-w-[1600px] mx-auto space-y-8">
       <header className="flex justify-between items-end">
         <div>
-          <h1 className="text-4xl font-display font-bold tracking-tight mb-2 bg-clip-text text-transparent bg-gradient-to-r from-white to-slate-400">Reinventing Tax Intelligence with AI</h1>
+          <h1 className="text-4xl font-display font-bold tracking-tight mb-2 bg-clip-text text-transparent bg-gradient-to-r from-[var(--heading-from)] to-[var(--heading-to)]">Reinventing Tax Intelligence with AI</h1>
           <p className="text-slate-400">Real-time financial tracking and AI-powered tax optimization.</p>
         </div>
         <button className="flex items-center gap-2 bg-white/10 hover:bg-white/20 border border-white/10 text-white px-6 py-3 rounded-full transition-all glow-hover text-sm font-medium">
@@ -142,6 +158,15 @@ export default function Dashboard() {
           Smart Document Scanner
         </button>
       </header>
+
+      {/* Demo mode banner */}
+      {isDemo && (
+        <div className="flex items-center justify-between px-5 py-3 rounded-2xl border text-sm"
+          style={{ background: 'linear-gradient(135deg, rgba(249,178,215,0.2), rgba(207,236,243,0.2))', borderColor: 'var(--glass-border)', color: 'var(--foreground)' }}>
+          <span>🎭 <strong>Demo Mode</strong> — You're viewing sample data. Sign up to track your own finances.</span>
+          {demoNotice && <span className="text-xs font-semibold opacity-70 animate-pulse">🔒 Read-only in demo mode</span>}
+        </div>
+      )}
 
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
         {cards.map((card, i) => (

@@ -1,5 +1,5 @@
 import { Routes, Route, Link, useLocation, Navigate } from 'react-router-dom';
-import { LayoutDashboard, FileText, Bot, PieChart, Calculator, Activity, Settings, LogOut } from 'lucide-react';
+import { LayoutDashboard, FileText, Bot, PieChart, Calculator, Activity, Settings, LogOut, Search, Mic, User, Bell, ChevronDown } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { clsx } from 'clsx';
 import DataEntry from './pages/DataEntry';
@@ -9,19 +9,37 @@ import Login from './pages/Login';
 import GST from './pages/GST';
 import Reports from './pages/Reports';
 import Analytics from './pages/Analytics';
-import { useState } from 'react';
+import SettingsPage from './pages/Settings';
+import { useState, useEffect } from 'react';
 
-const SidebarItem = ({ icon: Icon, label, path, active }: { icon: any, label: string, path: string, active: boolean }) => (
+const HeaderTab = ({ icon: Icon, label, path, active, color }: { icon: any, label: string, path: string, active: boolean, color: string }) => (
+  <Link to={path}>
+    <div
+      className={clsx(
+        "flex items-center gap-2 px-4 py-2 rounded-xl transition-all duration-300 font-medium text-sm border select-none hover:scale-[1.02]",
+        active
+          ? "text-[#1C1917] border-white/10 shadow-sm font-semibold"
+          : "text-slate-300 hover:text-white border-transparent"
+      )}
+      style={{
+        backgroundColor: active ? color : `${color}59`,
+      }}
+    >
+      <Icon size={18} className="shrink-0" />
+      <span>{label}</span>
+    </div>
+  </Link>
+);
+
+const SubNavTab = ({ label, path, active }: { label: string, path: string, active: boolean }) => (
   <Link to={path}>
     <div className={clsx(
-      "flex items-center gap-3 px-4 py-3 rounded-xl transition-all duration-300 group relative overflow-hidden",
-      active ? "bg-white/10 text-metallicGold border border-white/10" : "text-slate-400 hover:text-white hover:bg-white/5"
+      "px-4 py-3.5 border-b-2 text-sm font-medium transition-all duration-200 select-none",
+      active
+        ? "border-[var(--indigo-color)] text-[var(--foreground)] font-semibold"
+        : "border-transparent text-slate-400 hover:text-[var(--foreground)]"
     )}>
-      <Icon size={20} className={active ? "text-metallicGold drop-shadow-[0_0_8px_rgba(212,175,55,0.8)]" : "group-hover:text-white"} />
-      <span className="font-medium">{label}</span>
-      {active && (
-        <motion.div layoutId="activeNav" className="absolute left-0 top-0 bottom-0 w-1 bg-metallicGold shadow-[0_0_10px_rgba(212,175,55,1)]" />
-      )}
+      <span>{label}</span>
     </div>
   </Link>
 );
@@ -29,54 +47,211 @@ const SidebarItem = ({ icon: Icon, label, path, active }: { icon: any, label: st
 export default function App() {
   const location = useLocation();
   const [isAiOpen, setIsAiOpen] = useState(false);
-  const [isAuthenticated, setIsAuthenticated] = useState(false);
+  const [isAuthenticated, setIsAuthenticated] = useState(() => !!localStorage.getItem('taxai-token'));
+  const [currentUser, setCurrentUser] = useState<{ id: string; name: string; email: string } | null>(() => {
+    const stored = localStorage.getItem('taxai-user');
+    return stored ? JSON.parse(stored) : null;
+  });
+  const [searchQuery, setSearchQuery] = useState('');
+  const [showSearchDropdown, setShowSearchDropdown] = useState(false);
+  const [isProfileOpen, setIsProfileOpen] = useState(false);
+
+  useEffect(() => {
+    const savedTheme = localStorage.getItem('taxai-theme') || 'illuminate';
+    document.documentElement.setAttribute('data-theme', savedTheme);
+  }, []);
+
+  const getActiveMainTab = () => {
+    const p = location.pathname;
+    if (p === '/' || p === '/analytics') return 'overview';
+    if (p === '/entry') return 'ledger';
+    if (p === '/reports' || p === '/gst') return 'reports';
+    if (p === '/ai') return 'ai';
+    if (p.startsWith('/settings')) return 'preferences';
+    return 'overview';
+  };
+
+  const activeMainTab = getActiveMainTab();
+
+  const searchItems = [
+    { label: 'Overview Dashboard Summary', path: '/' },
+    { label: 'Smart Analytics & Trends', path: '/analytics' },
+    { label: 'Transactions Ledger (Record log)', path: '/entry' },
+    { label: 'GST Returns (GSTR-1 & 3B)', path: '/gst' },
+    { label: 'P&L Analysis Report', path: '/reports' },
+    { label: 'Trio AI Assistant Chat', path: '/ai' },
+    { label: 'Appearance & Themes (Settings)', path: '/settings?tab=appearance' },
+    { label: 'User Profile & Settings', path: '/settings?tab=profile' },
+    { label: 'Security & Access Control', path: '/settings?tab=security' },
+    { label: 'Notifications & Alerts Config', path: '/settings?tab=notifications' },
+    { label: 'AI Model Engine Calibration', path: '/settings?tab=ai-engine' }
+  ];
 
   if (!isAuthenticated) {
     return (
       <Routes>
-        <Route path="*" element={<Login onLogin={() => setIsAuthenticated(true)} />} />
+        <Route path="*" element={<Login onLogin={(user) => { setCurrentUser(user); setIsAuthenticated(true); }} />} />
       </Routes>
     );
   }
 
   return (
-    <div className="flex min-h-screen bg-transparent text-softWhite overflow-hidden">
-      {/* Elegant Sidebar */}
-      <aside className="w-72 border-r border-white/10 glass flex flex-col p-6 gap-8 z-20">
-        <div className="flex items-center gap-3 px-2">
-          <div className="w-10 h-10 rounded-xl bg-cyber-gradient flex items-center justify-center shadow-glow">
-            <span className="text-xl font-display font-bold italic text-white">TN</span>
-          </div>
-          <span className="text-2xl font-display font-bold tracking-tight bg-clip-text text-transparent bg-gradient-to-r from-white to-slate-400">Alpha</span>
+    <div className="flex flex-col min-h-screen bg-transparent text-softWhite overflow-hidden">
+      {/* Top Header Bar */}
+      <header className="top-header z-30 px-6 py-4 flex items-center justify-between">
+        {/* Left: Logo */}
+        <div className="flex items-center gap-3">
+          <svg viewBox="0 0 100 106" className="w-9 h-9 shrink-0" fill="none" xmlns="http://www.w3.org/2000/svg">
+            <polygon points="8,40 20,43 20,73 8,70" fill="#E44A22" />
+            <polygon points="26,28 38,31 38,65 26,62" fill="#248A4E" />
+            <polygon points="44,42 56,45 56,83 44,80" fill="#E44A22" />
+            <polygon points="62,52 74,55 74,101 62,98" fill="#E44A22" />
+            <polygon points="80,18 92,21 92,81 80,78" fill="#248A4E" />
+          </svg>
+          <span className="text-4xl font-display font-black tracking-wider bg-clip-text text-transparent bg-gradient-to-r from-[var(--heading-from)] to-[var(--heading-to)] select-none">ᴀʟᴘʜᴀ</span>
         </div>
 
-        <nav className="flex flex-col gap-2 flex-1">
-          <SidebarItem icon={LayoutDashboard} label="Dashboard" path="/" active={location.pathname === '/'} />
-          <SidebarItem icon={FileText} label="Transactions" path="/entry" active={location.pathname === '/entry'} />
-          <SidebarItem icon={Bot} label="AI Tax Assistant" path="/ai" active={location.pathname === '/ai'} />
-          <SidebarItem icon={PieChart} label="Reports" path="/reports" active={location.pathname === '/reports'} />
-          <SidebarItem icon={Calculator} label="GST Settings" path="/gst" active={location.pathname === '/gst'} />
-          <SidebarItem icon={Activity} label="Analytics" path="/analytics" active={location.pathname === '/analytics'} />
+        {/* Center: Main Navigation Header Tabs */}
+        <nav className="flex items-center gap-2 bg-black/45 backdrop-blur-md px-2.5 py-2 rounded-2xl border border-white/5">
+          <HeaderTab icon={LayoutDashboard} label="Overview" path="/" active={activeMainTab === 'overview'} color="#8EDAD0" />
+          <HeaderTab icon={FileText} label="Transactions" path="/entry" active={activeMainTab === 'ledger'} color="#FCD782" />
+          <HeaderTab icon={PieChart} label="Reports & GST" path="/reports" active={activeMainTab === 'reports'} color="#FF9A9A" />
+          <HeaderTab icon={Bot} label="AI Assistant" path="/ai" active={activeMainTab === 'ai'} color="#FF7575" />
+          <HeaderTab icon={Settings} label="Preferences" path="/settings" active={activeMainTab === 'preferences'} color="#A3CEF1" />
         </nav>
 
-        <div className="mt-auto flex flex-col gap-2 border-t border-white/10 pt-6">
-          <SidebarItem icon={Settings} label="Settings" path="/settings" active={location.pathname === '/settings'} />
-          <button 
-            onClick={() => setIsAuthenticated(false)}
-            className="flex items-center gap-3 px-4 py-3 rounded-xl text-rose-400 hover:bg-rose-400/10 transition-all group"
-          >
-            <LogOut size={20} className="group-hover:scale-110 transition-transform" />
-            <span className="font-medium">Secure Logout</span>
-          </button>
+        {/* Right: Search and Profile Actions */}
+        <div className="flex items-center gap-4">
+          {/* Search bar */}
+          <div className="relative w-56 md:w-72">
+            <div className="flex items-center bg-black/20 focus-within:bg-black/30 border border-white/10 rounded-full px-3.5 py-1.5 gap-2 text-slate-400 focus-within:text-white transition-all">
+              <Search size={15} />
+              <input
+                type="text"
+                placeholder="Search portal..."
+                value={searchQuery}
+                onChange={(e) => {
+                  setSearchQuery(e.target.value);
+                  setShowSearchDropdown(true);
+                }}
+                onFocus={() => setShowSearchDropdown(true)}
+                onBlur={() => setTimeout(() => setShowSearchDropdown(false), 200)}
+                className="bg-transparent border-none outline-none text-xs w-full placeholder-slate-500 text-white"
+              />
+              <Mic size={14} className="cursor-pointer hover:text-white transition-colors" />
+            </div>
+
+            {showSearchDropdown && (
+              <div className="absolute top-full mt-2 left-0 right-0 glass-card p-2 border border-white/15 shadow-2xl z-50 max-h-60 overflow-y-auto">
+                <p className="text-[10px] uppercase font-mono tracking-widest text-slate-400 px-3 py-1.5">Quick Navigation</p>
+                {searchItems
+                  .filter(item => item.label.toLowerCase().includes(searchQuery.toLowerCase()))
+                  .map((item, idx) => (
+                    <Link key={idx} to={item.path} onClick={() => { setSearchQuery(''); setShowSearchDropdown(false); }}>
+                      <div className="px-3 py-2 rounded-xl text-xs hover:bg-white/10 cursor-pointer transition-colors text-slate-300 hover:text-white">
+                        {item.label}
+                      </div>
+                    </Link>
+                  ))}
+              </div>
+            )}
+          </div>
+
+          {/* User profile dropdown */}
+          <div className="relative">
+            <button
+              onClick={() => setIsProfileOpen(!isProfileOpen)}
+              className="flex items-center gap-1.5 p-1 rounded-full hover:bg-white/10 transition-all border border-transparent hover:border-white/5"
+            >
+              <img
+                src="https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=100&q=80"
+                alt="User"
+                className="w-7 h-7 rounded-full object-cover border border-white/20"
+              />
+              <ChevronDown size={14} className="text-slate-400" />
+            </button>
+
+            {isProfileOpen && (
+              <>
+                <div className="fixed inset-0 z-40" onClick={() => setIsProfileOpen(false)} />
+                <div className="absolute right-0 mt-2 w-52 glass-card p-2 border border-white/15 shadow-2xl z-50 flex flex-col gap-1">
+                  <div className="px-3 py-2 border-b border-white/10 mb-1">
+                    <p className="text-xs font-semibold text-white">{currentUser?.name || 'User'}</p>
+                    <p className="text-[10px] text-slate-400">{currentUser?.email || ''}</p>
+                  </div>
+                  <Link to="/settings?tab=profile" onClick={() => setIsProfileOpen(false)}>
+                    <div className="flex items-center gap-2 px-3 py-2 rounded-xl text-xs text-slate-300 hover:text-white hover:bg-white/10 transition-colors">
+                      <User size={13} />
+                      <span>Workspace Profile</span>
+                    </div>
+                  </Link>
+                  <Link to="/settings?tab=appearance" onClick={() => setIsProfileOpen(false)}>
+                    <div className="flex items-center gap-2 px-3 py-2 rounded-xl text-xs text-slate-300 hover:text-white hover:bg-white/10 transition-colors">
+                      <Settings size={13} />
+                      <span>Workspace Settings</span>
+                    </div>
+                  </Link>
+                  <button
+                    onClick={() => {
+                      setIsProfileOpen(false);
+                      localStorage.removeItem('taxai-token');
+                      localStorage.removeItem('taxai-user');
+                      setCurrentUser(null);
+                      setIsAuthenticated(false);
+                    }}
+                    className="flex items-center gap-2 px-3 py-2 rounded-xl text-xs text-rose-400 hover:bg-rose-500/10 transition-colors w-full text-left"
+                  >
+                    <LogOut size={13} />
+                    <span>Secure Logout</span>
+                  </button>
+                </div>
+              </>
+            )}
+          </div>
         </div>
-      </aside>
+      </header>
+
+      {/* Sub-Navigation Bar */}
+      <div className="sub-nav px-8 flex items-center gap-1.5 z-20">
+        {activeMainTab === 'overview' && (
+          <>
+            <SubNavTab label="Basics Summary" path="/" active={location.pathname === '/'} />
+            <SubNavTab label="Detailed Analytics" path="/analytics" active={location.pathname === '/analytics'} />
+          </>
+        )}
+        {activeMainTab === 'ledger' && (
+          <>
+            <SubNavTab label="Transactions Log" path="/entry" active={location.pathname === '/entry'} />
+          </>
+        )}
+        {activeMainTab === 'reports' && (
+          <>
+            <SubNavTab label="Tax Reports (P&L)" path="/reports" active={location.pathname === '/reports'} />
+            <SubNavTab label="GST Settings & Filings" path="/gst" active={location.pathname === '/gst'} />
+          </>
+        )}
+        {activeMainTab === 'ai' && (
+          <>
+            <SubNavTab label="Chat with Trio" path="/ai" active={location.pathname === '/ai'} />
+          </>
+        )}
+        {activeMainTab === 'preferences' && (
+          <>
+            <SubNavTab label="Appearance & Theme" path="/settings?tab=appearance" active={location.search.includes('tab=appearance') || location.search === ''} />
+            <SubNavTab label="User Profile" path="/settings?tab=profile" active={location.search.includes('tab=profile')} />
+            <SubNavTab label="Security & Access" path="/settings?tab=security" active={location.search.includes('tab=security')} />
+            <SubNavTab label="Notifications" path="/settings?tab=notifications" active={location.search.includes('tab=notifications')} />
+            <SubNavTab label="AI Model Engine" path="/settings?tab=ai-engine" active={location.search.includes('tab=ai-engine')} />
+          </>
+        )}
+      </div>
 
       {/* Main Content */}
       <main className="flex-1 overflow-y-auto relative z-10">
         {/* Futuristic Background Elements */}
         <div className="absolute top-0 right-0 w-[500px] h-[500px] bg-electricTeal/5 blur-[120px] -z-10 rounded-full" />
         <div className="absolute bottom-0 left-0 w-[300px] h-[300px] bg-metallicGold/10 blur-[100px] -z-10 rounded-full" />
-        
+
         <AnimatePresence mode="wait">
           <Routes location={location} key={location.pathname}>
             <Route path="/" element={<Dashboard />} />
@@ -84,8 +259,9 @@ export default function App() {
             <Route path="/gst" element={<GST />} />
             <Route path="/reports" element={<Reports />} />
             <Route path="/analytics" element={<Analytics />} />
+            <Route path="/settings" element={<SettingsPage />} />
             <Route path="/ai" element={
-              <div className="p-8 h-[calc(100vh-2rem)]">
+              <div className="p-8 h-[calc(100vh-8rem)]">
                 <div className="h-full w-full rounded-3xl overflow-hidden shadow-cardGlow border border-cyan/30 relative">
                   <ChatBot />
                 </div>
@@ -101,9 +277,9 @@ export default function App() {
                   </div>
                   <h2 className="text-2xl font-display font-bold text-white mb-2">Module Initializing</h2>
                   <p className="text-slate-400 text-sm leading-relaxed mb-8">This module is currently being calibrated by the Alpha AI engine. It will be available shortly.</p>
-                  
+
                   <div className="w-full bg-black/40 h-1.5 rounded-full overflow-hidden">
-                    <motion.div 
+                    <motion.div
                       initial={{ width: "0%" }}
                       animate={{ width: "100%" }}
                       transition={{ duration: 2, repeat: Infinity, ease: "linear" }}
@@ -132,14 +308,14 @@ export default function App() {
             </motion.div>
           )}
         </AnimatePresence>
-        
+
         <button 
           onClick={() => setIsAiOpen(!isAiOpen)}
-          className="flex items-center gap-3 bg-gradient-to-r from-electricTeal to-metallicGold text-white px-6 py-4 rounded-full shadow-glow transition-all hover:scale-105 hover:shadow-[0_0_30px_rgba(212,175,55,0.8)] relative group overflow-hidden"
+          className="trio-aurora-btn flex items-center gap-3 px-6 py-4 rounded-full transition-all hover:scale-105 hover:brightness-105 relative group overflow-hidden shadow-lg"
         >
-          <div className="absolute inset-0 bg-white/20 translate-y-full group-hover:translate-y-0 transition-transform duration-300"></div>
-          <Bot size={24} className="relative z-10" />
-          <span className="font-display font-bold text-lg relative z-10">Trio</span>
+          <div className="absolute inset-0 bg-white/25 translate-y-full group-hover:translate-y-0 transition-transform duration-300 rounded-full"></div>
+          <Bot size={24} className="relative z-10 text-[#2d1f3d]" />
+          <span className="font-display font-bold text-lg relative z-10 text-[#2d1f3d]">Trio</span>
         </button>
       </div>
     </div>

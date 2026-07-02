@@ -11,10 +11,15 @@ const entries_1 = __importDefault(require("./routes/entries"));
 const auth_1 = __importDefault(require("./routes/auth"));
 const chat_1 = __importDefault(require("./routes/chat"));
 const path_1 = __importDefault(require("path"));
+// Load .env locally; on Render, env vars are set via dashboard
 dotenv_1.default.config({ path: path_1.default.resolve(__dirname, '../../.env') });
+dotenv_1.default.config(); // fallback for production
 const app = (0, express_1.default)();
 const PORT = process.env.PORT || 4000;
-app.use((0, cors_1.default)());
+app.use((0, cors_1.default)({
+    origin: process.env.FRONTEND_URL || '*',
+    credentials: true
+}));
 app.use(express_1.default.json());
 app.use((0, morgan_1.default)('dev'));
 // Routes

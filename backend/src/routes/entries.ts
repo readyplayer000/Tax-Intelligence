@@ -1,7 +1,8 @@
-import { Router } from 'express';
+import { Router, Response } from 'express';
 import { entrySchema } from '../shared/validators/entrySchema';
 import fs from 'fs';
 import path from 'path';
+import { authenticateToken, AuthRequest } from '../middleware/auth';
 
 const router = Router();
 const DB_PATH = path.join(__dirname, '../../db.json');
@@ -21,7 +22,10 @@ const writeDB = (data: any[]) => {
   fs.writeFileSync(DB_PATH, JSON.stringify(data, null, 2));
 };
 
-router.post('/', (req, res) => {
+// All entry routes require auth
+router.use(authenticateToken);
+
+router.post('/', (req: AuthRequest, res: Response) => {
   const result = entrySchema.safeParse(req.body);
   if (!result.success) {
     return res.status(400).json({ error: result.error });
@@ -30,7 +34,7 @@ router.post('/', (req, res) => {
   const entries = readDB();
   const newEntry = {
     id: Math.random().toString(36).substr(2, 9),
-    userId: 'user_123', // Mock user
+    userId: req.user!.id,  // ← real user id from JWT
     ...result.data
   };
 
@@ -39,19 +43,25 @@ router.post('/', (req, res) => {
   res.status(201).json(newEntry);
 });
 
-router.get('/', (req, res) => {
-  const { category, fy, userId } = req.query;
+router.get('/', (req: AuthRequest, res: Response) => {
+  const { category, fy } = req.query;
   let entries = readDB();
-  
+
+  // Filter by the logged-in user only
+  entries = entries.filter((e: any) => e.userId === req.user!.id);
+
   if (category) entries = entries.filter((e: any) => e.category === category);
   if (fy) entries = entries.filter((e: any) => e.financialYear === fy);
-  if (userId) entries = entries.filter((e: any) => e.userId === userId);
-  
+
   res.json(entries);
 });
 
-router.get('/summary', (req, res) => {
-  const entries = readDB();
+router.get('/summary', (req: AuthRequest, res: Response) => {
+  let entries = readDB();
+
+  // Only this user's entries
+  entries = entries.filter((e: any) => e.userId === req.user!.id);
+
   const activeEntries = entries.filter((e: any) => e.status !== 'EXCLUDED');
   const summary = {
     income: activeEntries.filter((e: any) => e.category === 'INCOME').reduce((acc: number, e: any) => acc + e.amount, 0),
@@ -62,7 +72,7 @@ router.get('/summary', (req, res) => {
   res.json(summary);
 });
 
-router.put('/:id', (req, res) => {
+router.put('/:id', (req: AuthRequest, res: Response) => {
   const { id } = req.params;
   const result = entrySchema.safeParse(req.body);
   if (!result.success) {
@@ -70,8 +80,8 @@ router.put('/:id', (req, res) => {
   }
 
   const entries = readDB();
-  const index = entries.findIndex((e: any) => e.id === id);
-  
+  const index = entries.findIndex((e: any) => e.id === id && e.userId === req.user!.id);
+
   if (index === -1) {
     return res.status(404).json({ error: 'Entry not found' });
   }
@@ -81,11 +91,11 @@ router.put('/:id', (req, res) => {
   res.json(entries[index]);
 });
 
-router.delete('/:id', (req, res) => {
+router.delete('/:id', (req: AuthRequest, res: Response) => {
   const { id } = req.params;
   const entries = readDB();
-  const filteredEntries = entries.filter((e: any) => e.id !== id);
-  
+  const filteredEntries = entries.filter((e: any) => !(e.id === id && e.userId === req.user!.id));
+
   if (entries.length === filteredEntries.length) {
     return res.status(404).json({ error: 'Entry not found' });
   }
