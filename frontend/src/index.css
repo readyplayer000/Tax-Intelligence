@@ -582,3 +582,12 @@ h6,
   -ms-overflow-style: none;  /* IE and Edge */
   scrollbar-width: none;  /* Firefox */
 }
+
+@keyframes scanLaser {
+  0% { top: 0%; }
+  50% { top: 100%; }
+  100% { top: 0%; }
+}
+.scanner-laser {
+  animation: scanLaser 2.2s ease-in-out infinite;
+}

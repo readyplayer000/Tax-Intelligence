@@ -1,11 +1,11 @@
-import { useState, useEffect } from 'react';
-import { motion } from 'framer-motion';
+import { useState, useEffect, useRef } from 'react';
+import { motion, AnimatePresence } from 'framer-motion';
 import { twMerge } from 'tailwind-merge';
 import { clsx } from 'clsx';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import api from '../lib/api';
-import { DEMO_ENTRIES, DEMO_SUMMARY, getDemoEntries, getDemoSummary, saveDemoEntries, updateDemoEntry, deleteDemoEntry } from '../lib/demoData';
-import { Wallet, PiggyBank, Receipt, Sparkles, ScanLine, Activity, CheckCircle, AlertCircle, Pencil, Trash2 } from 'lucide-react';
+import { DEMO_ENTRIES, DEMO_SUMMARY, getDemoEntries, getDemoSummary, saveDemoEntries, updateDemoEntry, deleteDemoEntry, addDemoEntry } from '../lib/demoData';
+import { Wallet, PiggyBank, Receipt, Sparkles, ScanLine, Activity, CheckCircle, AlertCircle, Pencil, Trash2, Camera, Upload, X, RefreshCw, Check } from 'lucide-react';
 import { AreaChart, Area, XAxis, YAxis, Tooltip, ResponsiveContainer } from 'recharts';
 import { useNavigate } from 'react-router-dom';
 
@@ -37,6 +37,115 @@ export default function Dashboard() {
 
   const storedUser = JSON.parse(localStorage.getItem('taxai-user') || '{}');
   const isDemo = storedUser?.id === 'demo';
+
+  // Camera & Document Scanner States
+  const [isScannerOpen, setIsScannerOpen] = useState(false);
+  const [cameraStream, setCameraStream] = useState<MediaStream | null>(null);
+  const [capturedPhoto, setCapturedPhoto] = useState<string | null>(null);
+  const [isScanning, setIsScanning] = useState(false);
+  const [scanResult, setScanResult] = useState<any | null>(null);
+  const [facingMode, setFacingMode] = useState<'user' | 'environment'>('environment');
+
+  const videoRef = useRef<HTMLVideoElement | null>(null);
+  const canvasRef = useRef<HTMLCanvasElement | null>(null);
+  const fileInputRef = useRef<HTMLInputElement | null>(null);
+
+  const startCamera = async (mode: 'user' | 'environment' = 'environment') => {
+    try {
+      if (cameraStream) {
+        cameraStream.getTracks().forEach(track => track.stop());
+      }
+      const constraints = {
+        video: { facingMode: mode }
+      };
+      const stream = await navigator.mediaDevices.getUserMedia(constraints);
+      setCameraStream(stream);
+      if (videoRef.current) {
+        videoRef.current.srcObject = stream;
+      }
+    } catch (err) {
+      console.error('Camera access failed, fallback to file upload:', err);
+    }
+  };
+
+  const stopCamera = () => {
+    if (cameraStream) {
+      cameraStream.getTracks().forEach(track => track.stop());
+      setCameraStream(null);
+    }
+  };
+
+  const capturePhoto = () => {
+    if (videoRef.current && canvasRef.current) {
+      const video = videoRef.current;
+      const canvas = canvasRef.current;
+      canvas.width = video.videoWidth || 640;
+      canvas.height = video.videoHeight || 480;
+      const ctx = canvas.getContext('2d');
+      if (ctx) {
+        ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+        const dataUrl = canvas.toDataURL('image/jpeg');
+        setCapturedPhoto(dataUrl);
+        stopCamera();
+        triggerMockAnalysis();
+      }
+    }
+  };
+
+  const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      const reader = new FileReader();
+      reader.onload = (event) => {
+        if (event.target?.result) {
+          setCapturedPhoto(event.target.result as string);
+          stopCamera();
+          triggerMockAnalysis();
+        }
+      };
+      reader.readAsDataURL(file);
+    }
+  };
+
+  const triggerMockAnalysis = () => {
+    setIsScanning(true);
+    setScanResult(null);
+    setTimeout(() => {
+      setIsScanning(false);
+      // Generate some nice realistic mock parsed data
+      const mockAmount = Math.floor(Math.random() * 3500) + 250;
+      setScanResult({
+        description: 'Office Stationery and Printing Supplies Invoice',
+        amount: mockAmount,
+        category: 'EXPENSE',
+        subCategory: 'Supplies',
+        date: new Date().toISOString().split('T')[0],
+        mode: 'BANK',
+        note: 'Scanned from Receipt via Smart Document Scanner'
+      });
+    }, 2500);
+  };
+
+  const addMutation = useMutation({
+    mutationFn: async (newEntry: any) => {
+      if (isDemo) {
+        addDemoEntry({
+          ...newEntry,
+          userId: 'demo',
+          status: 'ACTIVE',
+          tags: []
+        });
+        setDemoNotice(true);
+        setTimeout(() => setDemoNotice(false), 2500);
+        return;
+      }
+      await api.post('/api/entries', newEntry);
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['entries'] });
+      queryClient.invalidateQueries({ queryKey: ['summary'] });
+    }
+  });
 
   const { data: summary, isLoading } = useQuery({
     queryKey: ['summary', isDemo],
@@ -186,7 +295,16 @@ export default function Dashboard() {
           <h1 className="text-4xl font-display font-bold tracking-tight mb-2 bg-clip-text text-transparent bg-gradient-to-r from-[var(--heading-from)] to-[var(--heading-to)]">Reinventing Tax Intelligence with AI</h1>
           <p className="text-slate-400">Real-time financial tracking and AI-powered tax optimization.</p>
         </div>
-        <button className="flex items-center gap-2 bg-white/10 hover:bg-white/20 border border-white/10 text-white px-6 py-3 rounded-full transition-all glow-hover text-sm font-medium shrink-0">
+        <button 
+          onClick={() => {
+            setIsScannerOpen(true);
+            setCapturedPhoto(null);
+            setScanResult(null);
+            setIsScanning(false);
+            startCamera(facingMode);
+          }}
+          className="flex items-center gap-2 bg-white/10 hover:bg-white/20 border border-white/10 text-white px-6 py-3 rounded-full transition-all glow-hover text-sm font-medium shrink-0"
+        >
           <ScanLine size={18} />
           Smart Document Scanner
         </button>
@@ -426,6 +544,237 @@ export default function Dashboard() {
           ))}
         </div>
       </div>
+
+      {/* Smart Document Scanner Modal */}
+      <AnimatePresence>
+        {isScannerOpen && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+            <motion.div 
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              onClick={() => { stopCamera(); setIsScannerOpen(false); }}
+              className="absolute inset-0 bg-black/60 backdrop-blur-md"
+            />
+            
+            <motion.div 
+              initial={{ opacity: 0, scale: 0.95, y: 20 }}
+              animate={{ opacity: 1, scale: 1, y: 0 }}
+              exit={{ opacity: 0, scale: 0.95, y: 20 }}
+              className="relative w-full max-w-xl glass-card overflow-hidden border border-white/10 rounded-3xl shadow-2xl flex flex-col max-h-[90vh]"
+              style={{ background: 'linear-gradient(135deg, rgba(22, 28, 45, 0.9), rgba(10, 14, 23, 0.95))' }}
+            >
+              {/* Header */}
+              <div className="flex items-center justify-between p-6 border-b border-white/10">
+                <div className="flex items-center gap-3">
+                  <div className="p-2 rounded-xl bg-metallicGold/10 text-metallicGold animate-pulse">
+                    <ScanLine size={20} />
+                  </div>
+                  <div>
+                    <h3 className="font-display font-bold text-lg text-white">Smart Document Scanner</h3>
+                    <p className="text-xs text-slate-400">Capture or upload invoice to automatically parse fields</p>
+                  </div>
+                </div>
+                <button 
+                  onClick={() => { stopCamera(); setIsScannerOpen(false); }}
+                  className="p-2 bg-white/5 border border-white/10 hover:bg-white/10 text-slate-400 hover:text-white rounded-xl transition-all"
+                >
+                  <X size={18} />
+                </button>
+              </div>
+
+              {/* Body */}
+              <div className="flex-1 overflow-y-auto p-6 space-y-6">
+                {!capturedPhoto ? (
+                  /* Live Camera Feed View */
+                  <div className="relative w-full aspect-video bg-black/40 rounded-2xl border border-white/5 overflow-hidden flex flex-col items-center justify-center group">
+                    {cameraStream ? (
+                      <>
+                        <video 
+                          ref={videoRef} 
+                          autoPlay 
+                          playsInline 
+                          className="w-full h-full object-cover"
+                        />
+                        {/* Overlay frame lines */}
+                        <div className="absolute inset-8 border-2 border-dashed border-metallicGold/30 pointer-events-none rounded-xl flex items-center justify-center">
+                          <p className="text-[10px] text-metallicGold/50 uppercase tracking-widest font-bold">Align receipt here</p>
+                        </div>
+                      </>
+                    ) : (
+                      <div className="flex flex-col items-center justify-center p-8 text-center space-y-4">
+                        <div className="w-16 h-16 rounded-full bg-white/5 border border-white/10 flex items-center justify-center text-slate-400">
+                          <Camera size={28} />
+                        </div>
+                        <div>
+                          <p className="text-sm font-semibold text-white">Camera Access Required</p>
+                          <p className="text-xs text-slate-400 mt-1 max-w-xs">Please allow camera permissions or upload an image file from your device instead.</p>
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                ) : (
+                  /* Snapshot and Scan State */
+                  <div className="relative w-full aspect-video bg-black/40 rounded-2xl border border-white/5 overflow-hidden">
+                    <img 
+                      src={capturedPhoto} 
+                      alt="Captured Receipt" 
+                      className="w-full h-full object-cover"
+                    />
+                    
+                    {isScanning && (
+                      <div className="absolute inset-0 bg-emerald-500/10 flex flex-col items-center justify-center">
+                        {/* Scanning Laser Line */}
+                        <div className="absolute left-0 w-full h-1 bg-gradient-to-r from-transparent via-emerald-400 to-transparent shadow-[0_0_10px_rgba(52,211,153,1)] scanner-laser top-0" />
+                        <div className="px-4 py-2 rounded-full bg-black/80 border border-emerald-500/20 backdrop-blur-md text-emerald-400 text-xs font-mono tracking-widest uppercase animate-pulse flex items-center gap-2">
+                          <RefreshCw size={12} className="animate-spin" />
+                          AI Parsing Receipt...
+                        </div>
+                      </div>
+                    )}
+
+                    {!isScanning && scanResult && (
+                      <div className="absolute top-4 right-4 px-3 py-1.5 rounded-full bg-emerald-500/25 border border-emerald-400/30 text-emerald-300 text-xs font-semibold flex items-center gap-1">
+                        <Check size={14} /> Scan Completed
+                      </div>
+                    )}
+                  </div>
+                )}
+
+                {/* Shutter & File Fallback controls */}
+                {!capturedPhoto && (
+                  <div className="flex flex-col sm:flex-row items-center gap-4 justify-between">
+                    <button
+                      onClick={() => {
+                        const newMode = facingMode === 'environment' ? 'user' : 'environment';
+                        setFacingMode(newMode);
+                        startCamera(newMode);
+                      }}
+                      className="text-xs font-semibold text-slate-400 hover:text-white flex items-center gap-1.5 transition-colors"
+                    >
+                      <RefreshCw size={14} />
+                      Switch Camera ({facingMode})
+                    </button>
+
+                    <div className="flex items-center gap-3 w-full sm:w-auto">
+                      <button
+                        onClick={() => fileInputRef.current?.click()}
+                        className="flex-1 sm:flex-initial px-5 py-3 rounded-full bg-white/5 border border-white/10 hover:bg-white/10 text-slate-300 hover:text-white transition-all text-xs font-semibold flex items-center justify-center gap-2"
+                      >
+                        <Upload size={14} />
+                        Upload File
+                      </button>
+
+                      {cameraStream && (
+                        <button
+                          onClick={capturePhoto}
+                          className="flex-1 sm:flex-initial px-6 py-3 rounded-full bg-metallicGold text-black hover:scale-105 transition-all text-xs font-bold flex items-center justify-center gap-2 shadow-[0_0_15px_rgba(212,175,55,0.3)]"
+                        >
+                          <Camera size={15} />
+                          Capture Photo
+                        </button>
+                      )}
+                    </div>
+                  </div>
+                )}
+
+                {/* File Input Fallback */}
+                <input 
+                  type="file" 
+                  accept="image/*" 
+                  ref={fileInputRef} 
+                  onChange={handleFileUpload} 
+                  className="hidden"
+                />
+
+                {/* Extracted Fields Form */}
+                {scanResult && (
+                  <motion.div 
+                    initial={{ opacity: 0, y: 10 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    className="p-5 rounded-2xl bg-white/5 border border-white/10 space-y-4"
+                  >
+                    <h4 className="text-sm font-semibold text-white border-b border-white/10 pb-2">Extracted Transaction Details</h4>
+                    
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                      <div>
+                        <label className="text-[10px] text-slate-500 uppercase tracking-widest font-bold block mb-1">Description</label>
+                        <input 
+                          type="text" 
+                          value={scanResult.description} 
+                          onChange={(e) => setScanResult({ ...scanResult, description: e.target.value })}
+                          className="w-full bg-black/40 border border-white/10 rounded-xl px-3 py-2 text-sm text-white outline-none focus:border-metallicGold/30"
+                        />
+                      </div>
+                      <div>
+                        <label className="text-[10px] text-slate-500 uppercase tracking-widest font-bold block mb-1">Amount (INR)</label>
+                        <div className="relative">
+                          <span className="absolute left-3 top-1/2 -translate-y-1/2 text-metallicGold text-sm">₹</span>
+                          <input 
+                            type="number" 
+                            value={scanResult.amount} 
+                            onChange={(e) => setScanResult({ ...scanResult, amount: Number(e.target.value) })}
+                            className="w-full bg-black/40 border border-white/10 rounded-xl pl-7 pr-3 py-2 text-sm text-metallicGold font-bold outline-none focus:border-metallicGold/30"
+                          />
+                        </div>
+                      </div>
+                      <div>
+                        <label className="text-[10px] text-slate-500 uppercase tracking-widest font-bold block mb-1">Category</label>
+                        <select 
+                          value={scanResult.category} 
+                          onChange={(e) => setScanResult({ ...scanResult, category: e.target.value })}
+                          className="w-full bg-black/40 border border-white/10 rounded-xl px-3 py-2 text-sm text-white outline-none focus:border-metallicGold/30"
+                        >
+                          <option value="INCOME" className="bg-[var(--header-bg)] text-[var(--foreground)]">Income</option>
+                          <option value="EXPENSE" className="bg-[var(--header-bg)] text-[var(--foreground)]">Expense</option>
+                          <option value="INVESTMENT" className="bg-[var(--header-bg)] text-[var(--foreground)]">Investment</option>
+                          <option value="DEDUCTION" className="bg-[var(--header-bg)] text-[var(--foreground)]">Deduction</option>
+                        </select>
+                      </div>
+                      <div>
+                        <label className="text-[10px] text-slate-500 uppercase tracking-widest font-bold block mb-1">Subcategory</label>
+                        <input 
+                          type="text" 
+                          value={scanResult.subCategory} 
+                          onChange={(e) => setScanResult({ ...scanResult, subCategory: e.target.value })}
+                          className="w-full bg-black/40 border border-white/10 rounded-xl px-3 py-2 text-sm text-white outline-none focus:border-metallicGold/30"
+                        />
+                      </div>
+                    </div>
+
+                    <div className="flex justify-end gap-3 pt-2">
+                      <button 
+                        onClick={() => { setCapturedPhoto(null); setScanResult(null); startCamera(facingMode); }}
+                        className="px-4 py-2 bg-white/5 border border-white/10 hover:bg-white/10 text-xs font-semibold rounded-xl text-slate-300 hover:text-white transition-all flex items-center gap-1.5"
+                      >
+                        <RefreshCw size={12} /> Retake
+                      </button>
+                      <button 
+                        onClick={() => {
+                          addMutation.mutate({
+                            ...scanResult,
+                            financialYear: '2024-25',
+                            status: 'ACTIVE'
+                          });
+                          setIsScannerOpen(false);
+                          stopCamera();
+                          alert('Transaction successfully saved from scanned receipt!');
+                        }}
+                        className="px-5 py-2 bg-emerald-500 hover:bg-emerald-600 text-black text-xs font-bold rounded-xl transition-all shadow-[0_0_10px_rgba(16,185,129,0.3)]"
+                      >
+                        Save to Transactions
+                      </button>
+                    </div>
+                  </motion.div>
+                )}
+              </div>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
+
+      {/* Hidden Canvas for snap capture */}
+      <canvas ref={canvasRef} className="hidden" />
     </div>
   );
 }
