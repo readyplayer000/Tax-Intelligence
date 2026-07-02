@@ -6,7 +6,7 @@ import { motion } from 'framer-motion';
 import { Plus, Receipt, Landmark, Wallet, HelpCircle, Sparkles, Pencil, Trash2, Activity } from 'lucide-react';
 import { clsx } from 'clsx';
 import api from '../lib/api';
-import { DEMO_ENTRIES } from '../lib/demoData';
+import { DEMO_ENTRIES, getDemoEntries, saveDemoEntries, addDemoEntry, updateDemoEntry, deleteDemoEntry } from '../lib/demoData';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 
 const CATEGORIES = [
@@ -53,7 +53,7 @@ export default function DataEntry() {
   const { data: entries = [] } = useQuery({
     queryKey: ['entries', isDemo],
     queryFn: async () => {
-      if (isDemo) return DEMO_ENTRIES;
+      if (isDemo) return getDemoEntries();
       const { data } = await api.get('/api/entries');
       return data;
     }
@@ -61,7 +61,11 @@ export default function DataEntry() {
 
   const deleteMutation = useMutation({
     mutationFn: async (id: string) => {
-      if (isDemo) { showDemoBlock(); return; }
+      if (isDemo) {
+        deleteDemoEntry(id);
+        showDemoBlock();
+        return;
+      }
       await api.delete(`/api/entries/${id}`);
     },
     onSuccess: () => {
@@ -72,7 +76,13 @@ export default function DataEntry() {
 
   const toggleMutation = useMutation({
     mutationFn: async (entry: any) => {
-      if (isDemo) { showDemoBlock(); return; }
+      if (isDemo) {
+        updateDemoEntry(entry.id, {
+          status: entry.status === 'EXCLUDED' ? 'ACTIVE' : 'EXCLUDED'
+        });
+        showDemoBlock();
+        return;
+      }
       await api.put(`/api/entries/${entry.id}`, {
         ...entry,
         status: entry.status === 'EXCLUDED' ? 'ACTIVE' : 'EXCLUDED'
@@ -86,7 +96,11 @@ export default function DataEntry() {
 
   const quickSaveMutation = useMutation({
     mutationFn: async (data: any) => {
-      if (isDemo) { showDemoBlock(); return; }
+      if (isDemo) {
+        updateDemoEntry(data.id, data);
+        showDemoBlock();
+        return;
+      }
       await api.put(`/api/entries/${data.id}`, data);
     },
     onSuccess: () => {
@@ -123,7 +137,44 @@ export default function DataEntry() {
   };
 
   const onSubmit = async (data: TaxEntryInput) => {
-    if (isDemo) { showDemoBlock(); return; }
+    if (isDemo) {
+      if (editingId) {
+        updateDemoEntry(editingId, {
+          ...data,
+          subCategory: data.subCategory || '',
+          note: data.note || '',
+          tags: data.tags || []
+        });
+      } else {
+        addDemoEntry({
+          ...data,
+          subCategory: data.subCategory || '',
+          userId: 'demo',
+          status: 'ACTIVE',
+          note: data.note || '',
+          tags: data.tags || []
+        });
+      }
+      setSuccess(true);
+      setEditingId(null);
+      showDemoBlock();
+      queryClient.invalidateQueries({ queryKey: ['entries'] });
+      queryClient.invalidateQueries({ queryKey: ['summary'] });
+      
+      reset({
+        category: activeTab,
+        financialYear: '2024-25',
+        date: new Date().toISOString().split('T')[0],
+        mode: 'CASH',
+        tags: [],
+        subCategory: '',
+        description: '',
+        amount: 0,
+        note: ''
+      });
+      setTimeout(() => setSuccess(false), 3000);
+      return;
+    }
     try {
       if (editingId) {
         await api.put(`/api/entries/${editingId}`, data);
@@ -171,7 +222,14 @@ export default function DataEntry() {
   };
 
   const loadSampleData = async () => {
-    if (isDemo) { showDemoBlock(); return; }
+    if (isDemo) {
+      saveDemoEntries(DEMO_ENTRIES);
+      showDemoBlock();
+      queryClient.invalidateQueries({ queryKey: ['entries'] });
+      queryClient.invalidateQueries({ queryKey: ['summary'] });
+      alert('Demo dataset reset to default successfully! Head over to the Analytics for analysis.');
+      return;
+    }
     const samples = [
       { category: 'INCOME', subCategory: 'Salary', description: 'Monthly Salary', amount: 150000, date: '2024-11-01', financialYear: '2024-25', mode: 'BANK', note: 'Primary income source' },
       { category: 'EXPENSE', subCategory: 'Rent', description: 'Monthly House Rent', amount: 35000, date: '2024-11-05', financialYear: '2024-25', mode: 'BANK', note: 'HRA claimable' },
@@ -193,13 +251,13 @@ export default function DataEntry() {
   };
 
   return (
-    <div className="p-8 max-w-5xl mx-auto space-y-10">
-      <header className="flex justify-between items-start">
+    <div className="p-4 sm:p-8 max-w-5xl mx-auto space-y-10">
+      <header className="flex flex-col sm:flex-row gap-4 items-start sm:items-center justify-between">
         <div>
           <h1 className="text-4xl font-display font-bold tracking-tight mb-2">Transactions</h1>
           <p className="text-slate-400">Record and manage your financial activities securely.</p>
         </div>
-        <div className="flex gap-4">
+        <div className="flex gap-4 shrink-0">
           {editingId && (
             <button
               onClick={() => {
@@ -225,8 +283,8 @@ export default function DataEntry() {
       {isDemo && (
         <div className="flex items-center justify-between px-5 py-3 rounded-2xl border text-sm"
           style={{ background: 'linear-gradient(135deg, rgba(249,178,215,0.2), rgba(207,236,243,0.2))', borderColor: 'var(--glass-border)', color: 'var(--foreground)' }}>
-          <span>🎭 <strong>Demo Mode</strong> — Viewing 33 sample transactions. Sign up to add your own data.</span>
-          {demoNotice && <span className="text-xs font-semibold text-rose-500 animate-pulse">🔒 Read-only in demo</span>}
+          <span>🎭 <strong>Demo Mode</strong> — Viewing sample transactions. Sign up to add your own data.</span>
+          {demoNotice && <span className="text-xs font-semibold text-rose-500 animate-pulse">✨ Saved locally (Demo Mode)</span>}
         </div>
       )}
 
@@ -386,7 +444,7 @@ export default function DataEntry() {
           </button>
         </div>
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-          {entries.slice().reverse().slice(0, 6).map((entry: any) => (
+          {entries.slice().reverse().map((entry: any) => (
             <motion.div 
               key={entry.id}
               initial={{ opacity: 0, y: 10 }}

@@ -72,3 +72,53 @@ export const DEMO_SUMMARY = {
   investment: DEMO_ENTRIES.filter(e => e.category === 'INVESTMENT' && e.status === 'ACTIVE').reduce((s, e) => s + e.amount, 0),
   deduction:  DEMO_ENTRIES.filter(e => e.category === 'DEDUCTION'  && e.status === 'ACTIVE').reduce((s, e) => s + e.amount, 0),
 };
+
+export const getDemoEntries = (): DemoEntry[] => {
+  const data = localStorage.getItem('taxai-demo-entries');
+  if (!data) {
+    localStorage.setItem('taxai-demo-entries', JSON.stringify(DEMO_ENTRIES));
+    return DEMO_ENTRIES;
+  }
+  return JSON.parse(data);
+};
+
+export const saveDemoEntries = (entries: DemoEntry[]) => {
+  localStorage.setItem('taxai-demo-entries', JSON.stringify(entries));
+};
+
+export const getDemoSummary = () => {
+  const entries = getDemoEntries();
+  const activeEntries = entries.filter(e => e.status !== 'EXCLUDED');
+  return {
+    income:     activeEntries.filter(e => e.category === 'INCOME').reduce((s, e) => s + e.amount, 0),
+    expense:    activeEntries.filter(e => e.category === 'EXPENSE').reduce((s, e) => s + e.amount, 0),
+    investment: activeEntries.filter(e => e.category === 'INVESTMENT').reduce((s, e) => s + e.amount, 0),
+    deduction:  activeEntries.filter(e => e.category === 'DEDUCTION').reduce((s, e) => s + e.amount, 0),
+  };
+};
+
+export const addDemoEntry = (entry: Omit<DemoEntry, 'id'>) => {
+  const entries = getDemoEntries();
+  const newEntry: DemoEntry = {
+    ...entry,
+    id: 'demo-' + Math.random().toString(36).substr(2, 9),
+  };
+  entries.push(newEntry);
+  saveDemoEntries(entries);
+  return newEntry;
+};
+
+export const updateDemoEntry = (id: string, updatedData: Partial<Omit<DemoEntry, 'id' | 'userId'>>) => {
+  const entries = getDemoEntries();
+  const index = entries.findIndex(e => e.id === id);
+  if (index !== -1) {
+    entries[index] = { ...entries[index], ...updatedData };
+    saveDemoEntries(entries);
+  }
+};
+
+export const deleteDemoEntry = (id: string) => {
+  const entries = getDemoEntries();
+  const filtered = entries.filter(e => e.id !== id);
+  saveDemoEntries(filtered);
+};

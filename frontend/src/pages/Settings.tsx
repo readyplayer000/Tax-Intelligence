@@ -58,7 +58,7 @@ export default function Settings() {
   };
 
   return (
-    <div className="p-8 max-w-[1000px] mx-auto space-y-8">
+    <div className="p-4 sm:p-8 max-w-[1000px] mx-auto space-y-8">
       <header>
         <h1 className="text-4xl font-display font-bold tracking-tight mb-2 bg-clip-text text-transparent bg-gradient-to-r from-[var(--heading-from)] to-[var(--heading-to)]">
           Settings & Configuration

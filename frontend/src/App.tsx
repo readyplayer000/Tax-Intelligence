@@ -1,5 +1,5 @@
 import { Routes, Route, Link, useLocation, Navigate } from 'react-router-dom';
-import { LayoutDashboard, FileText, Bot, PieChart, Calculator, Activity, Settings, LogOut, Search, Mic, User, Bell, ChevronDown } from 'lucide-react';
+import { LayoutDashboard, FileText, Bot, PieChart, Calculator, Activity, Settings, LogOut, Search, Mic, User, Bell, ChevronDown, Menu, X } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { clsx } from 'clsx';
 import DataEntry from './pages/DataEntry';
@@ -55,6 +55,11 @@ export default function App() {
   const [searchQuery, setSearchQuery] = useState('');
   const [showSearchDropdown, setShowSearchDropdown] = useState(false);
   const [isProfileOpen, setIsProfileOpen] = useState(false);
+  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+
+  useEffect(() => {
+    setIsMobileMenuOpen(false);
+  }, [location.pathname]);
 
   useEffect(() => {
     const savedTheme = localStorage.getItem('taxai-theme') || 'illuminate';
@@ -111,8 +116,8 @@ export default function App() {
           <span className="text-4xl font-display font-black tracking-wider bg-clip-text text-transparent bg-gradient-to-r from-[var(--heading-from)] to-[var(--heading-to)] select-none">ᴀʟᴘʜᴀ</span>
         </div>
 
-        {/* Center: Main Navigation Header Tabs */}
-        <nav className="flex items-center gap-2 bg-black/45 backdrop-blur-md px-2.5 py-2 rounded-2xl border border-white/5">
+        {/* Center: Main Navigation Header Tabs (Hidden on mobile) */}
+        <nav className="hidden lg:flex items-center gap-2 bg-black/45 backdrop-blur-md px-2.5 py-2 rounded-2xl border border-white/5">
           <HeaderTab icon={LayoutDashboard} label="Overview" path="/" active={activeMainTab === 'overview'} color="#8EDAD0" />
           <HeaderTab icon={FileText} label="Transactions" path="/entry" active={activeMainTab === 'ledger'} color="#FCD782" />
           <HeaderTab icon={PieChart} label="Reports & GST" path="/reports" active={activeMainTab === 'reports'} color="#FF9A9A" />
@@ -120,8 +125,8 @@ export default function App() {
           <HeaderTab icon={Settings} label="Preferences" path="/settings" active={activeMainTab === 'preferences'} color="#A3CEF1" />
         </nav>
 
-        {/* Right: Search and Profile Actions */}
-        <div className="flex items-center gap-4">
+        {/* Right: Search and Profile Actions (Hidden on mobile) */}
+        <div className="hidden lg:flex items-center gap-4">
           {/* Search bar */}
           <div className="relative w-56 md:w-72">
             <div className="flex items-center bg-black/20 focus-within:bg-black/30 border border-white/10 rounded-full px-3.5 py-1.5 gap-2 text-slate-400 focus-within:text-white transition-all">
@@ -209,10 +214,166 @@ export default function App() {
             )}
           </div>
         </div>
+
+        {/* Mobile Menu Action Button */}
+        <div className="flex lg:hidden items-center">
+          <button
+            onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
+            className="p-2 bg-white/5 border border-white/10 hover:bg-white/10 text-slate-300 hover:text-white rounded-xl transition-all"
+          >
+            {isMobileMenuOpen ? <X size={20} /> : <Menu size={20} />}
+          </button>
+        </div>
       </header>
 
+      {/* Mobile Navigation Drawer */}
+      <AnimatePresence>
+        {isMobileMenuOpen && (
+          <motion.div
+            initial={{ opacity: 0, height: 0 }}
+            animate={{ opacity: 1, height: 'auto' }}
+            exit={{ opacity: 0, height: 0 }}
+            className="lg:hidden border-b border-white/10 bg-black/85 backdrop-blur-lg overflow-hidden z-20 flex flex-col px-6 py-6 gap-6"
+          >
+            {/* Search bar */}
+            <div className="relative w-full">
+              <div className="flex items-center bg-black/20 focus-within:bg-black/30 border border-white/10 rounded-full px-3.5 py-2.5 gap-2 text-slate-400 focus-within:text-white transition-all">
+                <Search size={16} />
+                <input
+                  type="text"
+                  placeholder="Search portal..."
+                  value={searchQuery}
+                  onChange={(e) => {
+                    setSearchQuery(e.target.value);
+                    setShowSearchDropdown(true);
+                  }}
+                  onFocus={() => setShowSearchDropdown(true)}
+                  onBlur={() => setTimeout(() => setShowSearchDropdown(false), 200)}
+                  className="bg-transparent border-none outline-none text-sm w-full placeholder-slate-500 text-white"
+                />
+                <Mic size={15} className="cursor-pointer hover:text-white transition-colors" />
+              </div>
+
+              {showSearchDropdown && (
+                <div className="absolute top-full mt-2 left-0 right-0 glass-card p-2 border border-white/15 shadow-2xl z-50 max-h-60 overflow-y-auto">
+                  <p className="text-[10px] uppercase font-mono tracking-widest text-slate-400 px-3 py-1.5">Quick Navigation</p>
+                  {searchItems
+                    .filter(item => item.label.toLowerCase().includes(searchQuery.toLowerCase()))
+                    .map((item, idx) => (
+                      <Link key={idx} to={item.path} onClick={() => { setSearchQuery(''); setShowSearchDropdown(false); setIsMobileMenuOpen(false); }}>
+                        <div className="px-3 py-2 rounded-xl text-xs hover:bg-white/10 cursor-pointer transition-colors text-slate-300 hover:text-white">
+                          {item.label}
+                        </div>
+                      </Link>
+                    ))}
+                </div>
+              )}
+            </div>
+
+            {/* Navigation Links */}
+            <nav className="flex flex-col gap-2.5">
+              <Link to="/" onClick={() => setIsMobileMenuOpen(false)}>
+                <div className={clsx(
+                  "flex items-center gap-3 px-4 py-3 rounded-xl transition-all duration-300 font-medium text-sm border",
+                  activeMainTab === 'overview'
+                    ? "text-[#1C1917] bg-[#8EDAD0] border-white/10 font-semibold"
+                    : "text-slate-300 hover:text-white border-transparent bg-white/5"
+                )}>
+                  <LayoutDashboard size={18} />
+                  <span>Overview</span>
+                </div>
+              </Link>
+              <Link to="/entry" onClick={() => setIsMobileMenuOpen(false)}>
+                <div className={clsx(
+                  "flex items-center gap-3 px-4 py-3 rounded-xl transition-all duration-300 font-medium text-sm border",
+                  activeMainTab === 'ledger'
+                    ? "text-[#1C1917] bg-[#FCD782] border-white/10 font-semibold"
+                    : "text-slate-300 hover:text-white border-transparent bg-white/5"
+                )}>
+                  <FileText size={18} />
+                  <span>Transactions</span>
+                </div>
+              </Link>
+              <Link to="/reports" onClick={() => setIsMobileMenuOpen(false)}>
+                <div className={clsx(
+                  "flex items-center gap-3 px-4 py-3 rounded-xl transition-all duration-300 font-medium text-sm border",
+                  activeMainTab === 'reports'
+                    ? "text-[#1C1917] bg-[#FF9A9A] border-white/10 font-semibold"
+                    : "text-slate-300 hover:text-white border-transparent bg-white/5"
+                )}>
+                  <PieChart size={18} />
+                  <span>Reports & GST</span>
+                </div>
+              </Link>
+              <Link to="/ai" onClick={() => setIsMobileMenuOpen(false)}>
+                <div className={clsx(
+                  "flex items-center gap-3 px-4 py-3 rounded-xl transition-all duration-300 font-medium text-sm border",
+                  activeMainTab === 'ai'
+                    ? "text-[#1C1917] bg-[#FF7575] border-white/10 font-semibold"
+                    : "text-slate-300 hover:text-white border-transparent bg-white/5"
+                )}>
+                  <Bot size={18} />
+                  <span>AI Assistant</span>
+                </div>
+              </Link>
+              <Link to="/settings" onClick={() => setIsMobileMenuOpen(false)}>
+                <div className={clsx(
+                  "flex items-center gap-3 px-4 py-3 rounded-xl transition-all duration-300 font-medium text-sm border",
+                  activeMainTab === 'preferences'
+                    ? "text-[#1C1917] bg-[#A3CEF1] border-white/10 font-semibold"
+                    : "text-slate-300 hover:text-white border-transparent bg-white/5"
+                )}>
+                  <Settings size={18} />
+                  <span>Preferences</span>
+                </div>
+              </Link>
+            </nav>
+
+            {/* Profile actions */}
+            <div className="border-t border-white/10 pt-4 flex flex-col gap-2">
+              <div className="px-4 py-2 mb-2 flex items-center gap-3">
+                <img
+                  src="https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=100&q=80"
+                  alt="User"
+                  className="w-9 h-9 rounded-full object-cover border border-white/20"
+                />
+                <div>
+                  <p className="text-sm font-semibold text-white">{currentUser?.name || 'User'}</p>
+                  <p className="text-xs text-slate-400">{currentUser?.email || ''}</p>
+                </div>
+              </div>
+              <Link to="/settings?tab=profile" onClick={() => setIsMobileMenuOpen(false)}>
+                <div className="flex items-center gap-3 px-4 py-3 rounded-xl text-sm text-slate-300 hover:text-white bg-white/5 transition-colors">
+                  <User size={16} />
+                  <span>Workspace Profile</span>
+                </div>
+              </Link>
+              <Link to="/settings?tab=appearance" onClick={() => setIsMobileMenuOpen(false)}>
+                <div className="flex items-center gap-3 px-4 py-3 rounded-xl text-sm text-slate-300 hover:text-white bg-white/5 transition-colors">
+                  <Settings size={16} />
+                  <span>Workspace Settings</span>
+                </div>
+              </Link>
+              <button
+                onClick={() => {
+                  setIsMobileMenuOpen(false);
+                  localStorage.removeItem('taxai-token');
+                  localStorage.removeItem('taxai-user');
+                  setCurrentUser(null);
+                  setIsAuthenticated(false);
+                }}
+                className="flex items-center gap-3 px-4 py-3 rounded-xl text-sm text-rose-400 hover:bg-rose-500/10 transition-colors w-full text-left bg-rose-500/5 border border-rose-500/10"
+              >
+                <LogOut size={16} />
+                <span>Secure Logout</span>
+              </button>
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
       {/* Sub-Navigation Bar */}
-      <div className="sub-nav px-8 flex items-center gap-1.5 z-20">
+      <div className="sub-nav px-4 sm:px-8 flex items-center gap-1.5 z-20 overflow-x-auto whitespace-nowrap scrollbar-none">
         {activeMainTab === 'overview' && (
           <>
             <SubNavTab label="Basics Summary" path="/" active={location.pathname === '/'} />
@@ -294,15 +455,14 @@ export default function App() {
       </main>
 
       {/* Trio Hologram Button */}
-      <div className="fixed bottom-8 right-8 z-50 flex flex-col items-end">
+      <div className="fixed bottom-4 right-4 sm:fixed sm:bottom-8 sm:right-8 z-50 flex flex-col items-end">
         <AnimatePresence>
           {isAiOpen && (
             <motion.div
               initial={{ opacity: 0, y: 20, scale: 0.9, filter: 'blur(10px)' }}
               animate={{ opacity: 1, y: 0, scale: 1, filter: 'blur(0px)' }}
               exit={{ opacity: 0, y: 20, scale: 0.9, filter: 'blur(10px)' }}
-              className="mb-4 shadow-cardGlow rounded-2xl overflow-hidden flex flex-col glass-card border border-white/10 ring-1 ring-cyan/30"
-              style={{ width: '420px', height: '650px' }}
+              className="mb-4 shadow-cardGlow rounded-2xl overflow-hidden flex flex-col glass-card border border-white/10 ring-1 ring-cyan/30 w-[calc(100vw-2rem)] sm:w-[420px] h-[70vh] sm:h-[650px]"
             >
               <ChatBot onClose={() => setIsAiOpen(false)} />
             </motion.div>

@@ -4,7 +4,7 @@ import { twMerge } from 'tailwind-merge';
 import { clsx } from 'clsx';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import api from '../lib/api';
-import { DEMO_ENTRIES, DEMO_SUMMARY } from '../lib/demoData';
+import { DEMO_ENTRIES, DEMO_SUMMARY, getDemoEntries, getDemoSummary, saveDemoEntries, updateDemoEntry, deleteDemoEntry } from '../lib/demoData';
 import { Wallet, PiggyBank, Receipt, Sparkles, ScanLine, Activity, CheckCircle, AlertCircle, Pencil, Trash2 } from 'lucide-react';
 import { AreaChart, Area, XAxis, YAxis, Tooltip, ResponsiveContainer } from 'recharts';
 import { useNavigate } from 'react-router-dom';
@@ -17,7 +17,7 @@ interface SummaryData {
 }
 
 const fetchSummary = async (isDemo: boolean) => {
-  if (isDemo) return DEMO_SUMMARY;
+  if (isDemo) return getDemoSummary();
   const { data } = await api.get('/api/entries/summary');
   return data;
 };
@@ -42,7 +42,7 @@ export default function Dashboard() {
   const { data: entries = [] } = useQuery({
     queryKey: ['entries', isDemo],
     queryFn: async () => {
-      if (isDemo) return DEMO_ENTRIES;
+      if (isDemo) return getDemoEntries();
       const { data } = await api.get('/api/entries');
       return data;
     },
@@ -51,7 +51,12 @@ export default function Dashboard() {
 
   const deleteMutation = useMutation({
     mutationFn: async (id: string) => {
-      if (isDemo) { setDemoNotice(true); setTimeout(() => setDemoNotice(false), 2500); return; }
+      if (isDemo) {
+        deleteDemoEntry(id);
+        setDemoNotice(true);
+        setTimeout(() => setDemoNotice(false), 2500);
+        return;
+      }
       await api.delete(`/api/entries/${id}`);
     },
     onSuccess: () => {
@@ -62,7 +67,14 @@ export default function Dashboard() {
 
   const toggleMutation = useMutation({
     mutationFn: async (entry: any) => {
-      if (isDemo) { setDemoNotice(true); setTimeout(() => setDemoNotice(false), 2500); return; }
+      if (isDemo) {
+        updateDemoEntry(entry.id, {
+          status: entry.status === 'EXCLUDED' ? 'ACTIVE' : 'EXCLUDED'
+        });
+        setDemoNotice(true);
+        setTimeout(() => setDemoNotice(false), 2500);
+        return;
+      }
       await api.put(`/api/entries/${entry.id}`, {
         ...entry,
         status: entry.status === 'EXCLUDED' ? 'ACTIVE' : 'EXCLUDED'
@@ -76,7 +88,12 @@ export default function Dashboard() {
 
   const quickSaveMutation = useMutation({
     mutationFn: async (data: any) => {
-      if (isDemo) { setDemoNotice(true); setTimeout(() => setDemoNotice(false), 2500); return; }
+      if (isDemo) {
+        updateDemoEntry(data.id, data);
+        setDemoNotice(true);
+        setTimeout(() => setDemoNotice(false), 2500);
+        return;
+      }
       await api.put(`/api/entries/${data.id}`, data);
     },
     onSuccess: () => {
@@ -98,7 +115,18 @@ export default function Dashboard() {
   };
 
   const toggleAll = async () => {
-    if (isDemo) { setDemoNotice(true); setTimeout(() => setDemoNotice(false), 2500); return; }
+    if (isDemo) {
+      const currentEntries = getDemoEntries();
+      const allExcluded = currentEntries.every((e: any) => e.status === 'EXCLUDED');
+      const newStatus = allExcluded ? 'ACTIVE' : 'EXCLUDED';
+      const updated = currentEntries.map((e: any) => ({ ...e, status: newStatus }));
+      saveDemoEntries(updated);
+      setDemoNotice(true);
+      setTimeout(() => setDemoNotice(false), 2500);
+      queryClient.invalidateQueries({ queryKey: ['entries'] });
+      queryClient.invalidateQueries({ queryKey: ['summary'] });
+      return;
+    }
     const allExcluded = entries.every((e: any) => e.status === 'EXCLUDED');
     const newStatus = allExcluded ? 'ACTIVE' : 'EXCLUDED';
     try {
@@ -147,13 +175,13 @@ export default function Dashboard() {
   })();
 
   return (
-    <div className="p-8 max-w-[1600px] mx-auto space-y-8">
-      <header className="flex justify-between items-end">
+    <div className="p-4 sm:p-8 max-w-[1600px] mx-auto space-y-8">
+      <header className="flex flex-col sm:flex-row gap-4 justify-between items-start sm:items-end">
         <div>
           <h1 className="text-4xl font-display font-bold tracking-tight mb-2 bg-clip-text text-transparent bg-gradient-to-r from-[var(--heading-from)] to-[var(--heading-to)]">Reinventing Tax Intelligence with AI</h1>
           <p className="text-slate-400">Real-time financial tracking and AI-powered tax optimization.</p>
         </div>
-        <button className="flex items-center gap-2 bg-white/10 hover:bg-white/20 border border-white/10 text-white px-6 py-3 rounded-full transition-all glow-hover text-sm font-medium">
+        <button className="flex items-center gap-2 bg-white/10 hover:bg-white/20 border border-white/10 text-white px-6 py-3 rounded-full transition-all glow-hover text-sm font-medium shrink-0">
           <ScanLine size={18} />
           Smart Document Scanner
         </button>
@@ -164,7 +192,7 @@ export default function Dashboard() {
         <div className="flex items-center justify-between px-5 py-3 rounded-2xl border text-sm"
           style={{ background: 'linear-gradient(135deg, rgba(249,178,215,0.2), rgba(207,236,243,0.2))', borderColor: 'var(--glass-border)', color: 'var(--foreground)' }}>
           <span>🎭 <strong>Demo Mode</strong> — You're viewing sample data. Sign up to track your own finances.</span>
-          {demoNotice && <span className="text-xs font-semibold opacity-70 animate-pulse">🔒 Read-only in demo mode</span>}
+          {demoNotice && <span className="text-xs font-semibold opacity-70 animate-pulse">✨ Saved locally (Demo Mode)</span>}
         </div>
       )}
 

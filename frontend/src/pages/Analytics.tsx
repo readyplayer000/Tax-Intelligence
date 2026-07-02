@@ -23,7 +23,7 @@ const monthlyComparison = [
 
 export default function Analytics() {
   return (
-    <div className="p-8 max-w-7xl mx-auto space-y-8 pb-20">
+    <div className="p-4 sm:p-8 max-w-7xl mx-auto space-y-8 pb-20">
       <header>
         <h1 className="text-4xl font-display font-bold tracking-tight mb-2">Financial Intelligence</h1>
         <p className="text-slate-400 font-sans text-lg">Deep analytics and AI-driven projections for your wealth.</p>

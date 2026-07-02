@@ -10,18 +10,18 @@ export default function Reports() {
   ];
 
   return (
-    <div className="p-8 max-w-6xl mx-auto space-y-8">
-      <header className="flex justify-between items-end">
+    <div className="p-4 sm:p-8 max-w-6xl mx-auto space-y-8">
+      <header className="flex flex-col sm:flex-row gap-4 justify-between items-start sm:items-end">
         <div>
           <h1 className="text-4xl font-display font-bold tracking-tight mb-2">Financial Reports</h1>
           <p className="text-slate-400 font-sans">Generate and export your tax-ready financial statements.</p>
         </div>
-        <div className="flex gap-4">
-          <div className="relative group">
+        <div className="flex gap-4 w-full sm:w-auto">
+          <div className="relative group flex-1 sm:flex-initial">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-500 group-focus-within:text-metallicGold transition-colors" size={18} />
-            <input type="text" placeholder="Search reports..." className="bg-black/40 border border-white/10 rounded-full pl-10 pr-4 py-2 text-sm text-white focus:ring-1 focus:ring-metallicGold/50 outline-none w-64 transition-all" />
+            <input type="text" placeholder="Search reports..." className="bg-black/40 border border-white/10 rounded-full pl-10 pr-4 py-2 text-sm text-white focus:ring-1 focus:ring-metallicGold/50 outline-none w-full sm:w-64 transition-all" />
           </div>
-          <button className="p-2 bg-white/5 border border-white/10 rounded-full text-slate-400 hover:text-white transition-colors">
+          <button className="p-2 bg-white/5 border border-white/10 rounded-full text-slate-400 hover:text-white transition-colors shrink-0">
             <Filter size={18} />
           </button>
         </div>
